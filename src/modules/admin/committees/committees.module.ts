@@ -8,7 +8,9 @@ import { Committee, CommitteeSchema } from './committee.schema';
   providers: [CommitteesService],
   controllers: [CommitteesController],
   imports: [
-    MongooseModule.forFeature([{ name: Committee.name, schema: CommitteeSchema }]),
+    MongooseModule.forFeature([
+      { name: Committee.name, schema: CommitteeSchema },
+    ]),
   ],
 })
 export class CommitteesModule {}
