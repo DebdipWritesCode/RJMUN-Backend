@@ -15,12 +15,31 @@ export class EmailService {
     });
   }
 
-  async sendRegistrationConfirmation(to: string, regId: string, fullName: string) {
+  async sendRegistrationConfirmation(
+    to: string,
+    regId: string,
+    fullName: string,
+  ) {
     const mailOptions = {
       from: `"RJMUN" <${process.env.EMAIL_USER}>`,
       to,
       subject: 'RJMUN Registration Confirmation',
       text: `Dear ${fullName},\n\nThank you for registering for RJMUN. Your registration ID is ${regId}.\n\nBest regards,\nRJMUN Team`,
+    };
+
+    return await this.transporter.sendMail(mailOptions);
+  }
+
+  async sendCAConfirmationEmail(
+    to: string,
+    fullName: string,
+    institution: string,
+  ) {
+    const mailOptions = {
+      from: `"RJMUN" <${process.env.EMAIL_USER}>`,
+      to,
+      subject: 'RJMUN CA Registration Confirmation',
+      text: `Dear ${fullName},\n\nThank you for registering as a Campus Ambassador for RJMUN from ${institution}. We appreciate your interest and will contact you shortly with further details.\n\nBest regards,\nRJMUN Team`,
     };
 
     return await this.transporter.sendMail(mailOptions);

@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Param, Put, Delete } from '@nestjs/common';
 import { TeamMembersService } from './team-members.service';
-import { CreateTeamMemberDto } from './dto/create-team-member';
-import { UpdateTeamMemberDto } from './dto/update-team-member';
+import { CreateTeamMemberDto } from './dto/create-team-member.dto';
+import { UpdateTeamMemberDto } from './dto/update-team-member.dto';
 
 @Controller('team-members')
 export class TeamMembersController {

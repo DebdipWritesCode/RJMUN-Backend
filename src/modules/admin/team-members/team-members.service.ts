@@ -2,8 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { TeamMember, TeamMemberDocument } from './team-member.schema';
-import { CreateTeamMemberDto } from './dto/create-team-member';
-import { UpdateTeamMemberDto } from './dto/update-team-member';
+import { CreateTeamMemberDto } from './dto/create-team-member.dto';
+import { UpdateTeamMemberDto } from './dto/update-team-member.dto';
 
 @Injectable()
 export class TeamMembersService {
