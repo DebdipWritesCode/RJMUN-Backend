@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
+import { registrationConfirmationTemplate } from './templates/registration-confirmation.template';
+import { caConfirmationTemplate } from './templates/ca-confirmation.template';
 
 @Injectable()
 export class EmailService {
@@ -10,7 +12,7 @@ export class EmailService {
       service: 'gmail',
       auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS, // App password
+        pass: process.env.EMAIL_PASS,
       },
     });
   }
@@ -20,11 +22,13 @@ export class EmailService {
     regId: string,
     fullName: string,
   ) {
+    const html = registrationConfirmationTemplate(fullName, regId);
+
     const mailOptions = {
       from: `"RJMUN" <${process.env.EMAIL_USER}>`,
       to,
       subject: 'RJMUN Registration Confirmation',
-      text: `Dear ${fullName},\n\nThank you for registering for RJMUN. Your registration ID is ${regId}.\n\nBest regards,\nRJMUN Team`,
+      html,
     };
 
     return await this.transporter.sendMail(mailOptions);
@@ -35,11 +39,13 @@ export class EmailService {
     fullName: string,
     institution: string,
   ) {
+    const html = caConfirmationTemplate(fullName, institution);
+
     const mailOptions = {
       from: `"RJMUN" <${process.env.EMAIL_USER}>`,
       to,
       subject: 'RJMUN CA Registration Confirmation',
-      text: `Dear ${fullName},\n\nThank you for registering as a Campus Ambassador for RJMUN from ${institution}. We appreciate your interest and will contact you shortly with further details.\n\nBest regards,\nRJMUN Team`,
+      html,
     };
 
     return await this.transporter.sendMail(mailOptions);
