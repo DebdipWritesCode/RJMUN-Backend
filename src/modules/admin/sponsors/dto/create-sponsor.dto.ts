@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsString, IsUrl } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString, IsUrl } from 'class-validator';
 
 export class CreateSponsorDto {
   @IsString()
@@ -10,6 +10,6 @@ export class CreateSponsorDto {
 
   @IsString()
   @IsUrl()
-  @IsNotEmpty()
-  imageUrl: string;
+  @IsOptional()
+  imageUrl?: string;
 }
