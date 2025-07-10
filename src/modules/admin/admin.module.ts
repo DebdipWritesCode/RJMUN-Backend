@@ -4,6 +4,7 @@ import { EbModule } from './eb/eb.module';
 import { SponsorsModule } from './sponsors/sponsors.module';
 import { TeamMembersModule } from './team-members/team-members.module';
 import { FaqsModule } from './faqs/faqs.module';
+import { LoginController } from './login.controller';
 
 @Module({
   imports: [
@@ -13,5 +14,6 @@ import { FaqsModule } from './faqs/faqs.module';
     TeamMembersModule,
     FaqsModule,
   ],
+  controllers: [LoginController],
 })
 export class AdminModule {}

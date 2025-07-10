@@ -14,5 +14,6 @@ import { PaymentModule } from '../payment/payment.module';
   ],
   controllers: [RegistrationController],
   providers: [RegistrationService],
+  exports: [RegistrationService],
 })
 export class RegistrationModule {}

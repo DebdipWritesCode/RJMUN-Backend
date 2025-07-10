@@ -19,7 +19,6 @@ export class CaService {
     const ca = new this.caModel(dto);
     const saved = await ca.save();
 
-    // Google Sheets - Sheet2
     const row = [
       saved.fullName,
       saved.email,
@@ -36,10 +35,10 @@ export class CaService {
       'Sheet2!A1',
     );
 
-    // Send confirmation email
     await this.emailService.sendCAConfirmationEmail(
       saved.email,
       saved.fullName,
+      saved.institution,
     );
 
     return saved;

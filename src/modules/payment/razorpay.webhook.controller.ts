@@ -39,7 +39,6 @@ export class RazorpayWebhookController {
       : this.paymentService.verifySignature(
           JSON.stringify(body),
           signature,
-          process.env.RAZORPAY_WEBHOOK_SECRET || '',
         );
 
     if (!isValid) return res.status(400).json({ message: 'Invalid signature' });

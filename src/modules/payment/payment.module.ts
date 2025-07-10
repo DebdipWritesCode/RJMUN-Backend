@@ -3,9 +3,11 @@ import { PaymentService } from './payment.service';
 import { PaymentController } from './payment.controller';
 import { RazorpayWebhookController } from './razorpay.webhook.controller';
 import { RegistrationModule } from '../registration/registration.module';
+import { SheetsModule } from '../sheets/sheets.module';
+import { EmailModule } from '../email/email.module';
 
 @Module({
-  imports: [forwardRef(() => RegistrationModule)],
+  imports: [forwardRef(() => RegistrationModule), EmailModule, SheetsModule],
   controllers: [PaymentController, RazorpayWebhookController],
   providers: [PaymentService],
   exports: [PaymentService],
