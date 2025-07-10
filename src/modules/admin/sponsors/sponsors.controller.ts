@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Param, Put, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Put,
+  Delete,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { SponsorsService } from './sponsors.service';
 import { CreateSponsorDto } from './dto/create-sponsor.dto';
 import { UpdateSponsorDto } from './dto/update-sponsor.dto';
@@ -8,8 +19,16 @@ export class SponsorsController {
   constructor(private readonly sponsorsService: SponsorsService) {}
 
   @Post()
-  create(@Body() dto: CreateSponsorDto) {
-    return this.sponsorsService.create(dto);
+  @UseInterceptors(FileInterceptor('image'))
+  create(
+    @Body() dto: CreateSponsorDto,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.sponsorsService.create({
+      ...dto,
+      image: file?.buffer,
+      imageMimeType: file?.mimetype,
+    });
   }
 
   @Get()
@@ -23,8 +42,17 @@ export class SponsorsController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateSponsorDto) {
-    return this.sponsorsService.update(id, dto);
+  @UseInterceptors(FileInterceptor('image'))
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateSponsorDto,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.sponsorsService.update(id, {
+      ...dto,
+      image: file?.buffer,
+      imageMimeType: file?.mimetype,
+    });
   }
 
   @Delete(':id')

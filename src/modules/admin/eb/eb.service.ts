@@ -11,28 +11,54 @@ export class EbService {
     @InjectModel(EB.name) private ebModel: Model<EBDocument>,
   ) {}
 
-  async create(createEbDto: CreateEbDto): Promise<EB> {
-    const createdEb = new this.ebModel(createEbDto);
-    return createdEb.save();
+  async create(
+    data: CreateEbDto & { image?: Buffer; imageMimeType?: string },
+  ): Promise<EB> {
+    return this.ebModel.create(data);
   }
 
-  async findAll(): Promise<EB[]> {
-    return this.ebModel.find().exec();
+  async findAll(): Promise<any[]> {
+    const ebs = await this.ebModel.find().lean();
+
+    return ebs.map((eb) => ({
+      ...eb,
+      imageUrl: eb.image
+        ? `data:${eb.imageMimeType};base64,${eb.image.toString('base64')}`
+        : null,
+    }));
   }
 
-  async findOne(id: string): Promise<EB> {
-    const eb = await this.ebModel.findById(id).exec();
+  async findOne(id: string): Promise<any> {
+    const eb = await this.ebModel.findById(id).lean();
     if (!eb) {
       throw new NotFoundException(`EB with id ${id} not found`);
     }
-    return eb;
+
+    return {
+      ...eb,
+      imageUrl: eb.image
+        ? `data:${eb.imageMimeType};base64,${eb.image.toString('base64')}`
+        : null,
+    };
   }
 
-  async update(id: string, updateEbDto: UpdateEbDto): Promise<EB> {
-    const updated = await this.ebModel.findByIdAndUpdate(id, updateEbDto, {
-      new: true,
-      runValidators: true,
-    }).exec();
+  async update(
+    id: string,
+    updateDto: UpdateEbDto & { image?: Buffer; imageMimeType?: string },
+  ): Promise<EB> {
+    const updatePayload: any = { ...updateDto };
+
+    if (!updateDto.image) {
+      delete updatePayload.image;
+      delete updatePayload.imageMimeType;
+    }
+
+    const updated = await this.ebModel
+      .findByIdAndUpdate(id, updatePayload, {
+        new: true,
+        runValidators: true,
+      })
+      .exec();
 
     if (!updated) {
       throw new NotFoundException(`EB with id ${id} not found`);

@@ -8,7 +8,8 @@ export class EB {
   @Prop({ required: true }) name: string;
   @Prop({ required: true }) position: string;
   @Prop({ required: true }) committee: string;
-  @Prop() photoUrl: string;
+  @Prop({ type: Buffer }) image: Buffer;
+  @Prop() imageMimeType: string;
 }
 
 export const EBSchema = SchemaFactory.createForClass(EB);

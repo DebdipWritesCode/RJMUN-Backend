@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Param, Put, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Put,
+  Delete,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { EbService } from './eb.service';
 import { CreateEbDto } from './dto/create-eb.dto';
 import { UpdateEbDto } from './dto/update-eb.dto';
@@ -8,8 +19,16 @@ export class EbController {
   constructor(private readonly ebService: EbService) {}
 
   @Post()
-  create(@Body() dto: CreateEbDto) {
-    return this.ebService.create(dto);
+  @UseInterceptors(FileInterceptor('image'))
+  create(
+    @Body() dto: CreateEbDto,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.ebService.create({
+      ...dto,
+      image: file?.buffer,
+      imageMimeType: file?.mimetype,
+    });
   }
 
   @Get()
@@ -23,8 +42,17 @@ export class EbController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateEbDto) {
-    return this.ebService.update(id, dto);
+  @UseInterceptors(FileInterceptor('image'))
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateEbDto,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.ebService.update(id, {
+      ...dto,
+      image: file?.buffer,
+      imageMimeType: file?.mimetype,
+    });
   }
 
   @Delete(':id')

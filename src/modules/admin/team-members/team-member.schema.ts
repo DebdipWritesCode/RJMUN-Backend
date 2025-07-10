@@ -7,7 +7,8 @@ export type TeamMemberDocument = TeamMember & Document;
 export class TeamMember {
   @Prop({ required: true }) name: string;
   @Prop({ required: true }) position: string;
-  @Prop() photoUrl: string;
+  @Prop({ type: Buffer }) image: Buffer;
+  @Prop() imageMimeType: string;
 }
 
 export const TeamMemberSchema = SchemaFactory.createForClass(TeamMember);

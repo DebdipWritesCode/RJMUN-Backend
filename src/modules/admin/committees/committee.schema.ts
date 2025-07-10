@@ -1,5 +1,5 @@
-import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { Document } from "mongoose";
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document } from 'mongoose';
 
 export type CommitteeDocument = Committee & Document;
 
@@ -8,6 +8,8 @@ export class Committee {
   @Prop({ required: true }) name: string;
   @Prop({ required: true }) agenda: string;
   @Prop() backgroundGuideURL: string;
+  @Prop({ type: Buffer }) image: Buffer;
+  @Prop() imageMimeType: string;
 }
 
 export const CommitteeSchema = SchemaFactory.createForClass(Committee);

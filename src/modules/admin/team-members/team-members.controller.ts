@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Param, Put, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Put,
+  Delete,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { TeamMembersService } from './team-members.service';
 import { CreateTeamMemberDto } from './dto/create-team-member.dto';
 import { UpdateTeamMemberDto } from './dto/update-team-member.dto';
@@ -8,8 +19,16 @@ export class TeamMembersController {
   constructor(private readonly teamMembersService: TeamMembersService) {}
 
   @Post()
-  create(@Body() dto: CreateTeamMemberDto) {
-    return this.teamMembersService.create(dto);
+  @UseInterceptors(FileInterceptor('image'))
+  create(
+    @Body() dto: CreateTeamMemberDto,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.teamMembersService.create({
+      ...dto,
+      image: file?.buffer,
+      imageMimeType: file?.mimetype,
+    });
   }
 
   @Get()
@@ -23,8 +42,17 @@ export class TeamMembersController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateTeamMemberDto) {
-    return this.teamMembersService.update(id, dto);
+  @UseInterceptors(FileInterceptor('image'))
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateTeamMemberDto,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.teamMembersService.update(id, {
+      ...dto,
+      image: file?.buffer,
+      imageMimeType: file?.mimetype,
+    });
   }
 
   @Delete(':id')

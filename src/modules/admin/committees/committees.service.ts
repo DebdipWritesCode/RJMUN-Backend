@@ -8,16 +8,28 @@ import { UpdateCommitteeDto } from './dto/update-committee.dto';
 @Injectable()
 export class CommitteesService {
   constructor(
-    @InjectModel(Committee.name) private committeeModel: Model<CommitteeDocument>,
+    @InjectModel(Committee.name)
+    private committeeModel: Model<CommitteeDocument>,
   ) {}
 
-  async create(createCommitteeDto: CreateCommitteeDto): Promise<Committee> {
-    const created = new this.committeeModel(createCommitteeDto);
-    return created.save();
+  async create(
+    data: CreateCommitteeDto & { image?: Buffer; imageMimeType?: string },
+  ) {
+    return this.committeeModel.create(data);
   }
 
-  async findAll(): Promise<Committee[]> {
-    return this.committeeModel.find().exec();
+  async findAll() {
+    return this.committeeModel
+      .find()
+      .lean()
+      .then((committees) =>
+        committees.map((c) => ({
+          ...c,
+          imageUrl: c.image
+            ? `data:${c.imageMimeType};base64,${c.image.toString('base64')}`
+            : null,
+        })),
+      );
   }
 
   async findOne(id: string): Promise<Committee> {
@@ -28,11 +40,23 @@ export class CommitteesService {
     return committee;
   }
 
-  async update(id: string, updateDto: UpdateCommitteeDto): Promise<Committee> {
-    const updated = await this.committeeModel.findByIdAndUpdate(id, updateDto, {
-      new: true,
-      runValidators: true,
-    }).exec();
+  async update(
+    id: string,
+    updateDto: UpdateCommitteeDto & { image?: Buffer; imageMimeType?: string },
+  ): Promise<Committee> {
+    const updatePayload: any = { ...updateDto };
+
+    if (!updateDto.image) {
+      delete updatePayload.image;
+      delete updatePayload.imageMimeType;
+    }
+
+    const updated = await this.committeeModel
+      .findByIdAndUpdate(id, updatePayload, {
+        new: true,
+        runValidators: true,
+      })
+      .exec();
 
     if (!updated) {
       throw new NotFoundException(`Committee with id ${id} not found`);
