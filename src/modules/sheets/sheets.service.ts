@@ -8,7 +8,7 @@ export class SheetsService {
 
   constructor() {
     const auth = new google.auth.GoogleAuth({
-      credentials: credentials.installed,
+      credentials: credentials,
       scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
 
