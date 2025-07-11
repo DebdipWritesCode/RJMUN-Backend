@@ -11,6 +11,7 @@ import { EmailModule } from './modules/email/email.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { RegistrationModule } from './modules/registration/registration.module';
 import { SheetsModule } from './modules/sheets/sheets.module';
+import { CouponsModule } from './modules/coupons/coupons.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { SheetsModule } from './modules/sheets/sheets.module';
     PaymentModule,
     RegistrationModule,
     SheetsModule,
+    CouponsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
