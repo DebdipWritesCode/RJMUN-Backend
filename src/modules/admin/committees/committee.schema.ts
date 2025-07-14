@@ -10,6 +10,7 @@ export class Committee {
   @Prop() backgroundGuideURL: string;
   @Prop({ type: Buffer }) image: Buffer;
   @Prop() imageMimeType: string;
+  @Prop({ type: [String], required: false }) portfolios?: string[];
 }
 
 export const CommitteeSchema = SchemaFactory.createForClass(Committee);

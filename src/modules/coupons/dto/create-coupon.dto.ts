@@ -6,5 +6,9 @@ export class CreateCouponDto {
 
   @IsNumber()
   @Min(0)
-  amount_off: number;
+  amountOff: number;
+
+  @IsNumber()
+  @Min(1)
+  redemptionsLeft: number;
 }

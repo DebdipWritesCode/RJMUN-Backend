@@ -10,6 +10,9 @@ export class Coupon {
 
   @Prop({ required: true })
   amountOff: number;
+
+  @Prop({ required: true, default: 1 })
+  redemptionsLeft: number;
 }
 
 export const CouponSchema = SchemaFactory.createForClass(Coupon);

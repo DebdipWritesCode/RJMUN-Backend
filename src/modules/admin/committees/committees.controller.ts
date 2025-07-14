@@ -18,6 +18,11 @@ import { UpdateCommitteeDto } from './dto/update-committee.dto';
 export class CommitteesController {
   constructor(private readonly committeeService: CommitteesService) {}
 
+  @Get('get-portfolios')
+  getAllCommitteePortfolios() {
+    return this.committeeService.getAllCommitteePortfolios();
+  }
+
   @Post()
   @UseInterceptors(FileInterceptor('image'))
   create(
@@ -58,5 +63,26 @@ export class CommitteesController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.committeeService.remove(id);
+  }
+
+  @Post(':id/portfolio')
+  addPortfolio(@Param('id') id: string, @Body('portfolio') portfolio: string) {
+    return this.committeeService.addPortfolio(id, portfolio);
+  }
+
+  @Post(':id/portfolios')
+  addPortfolios(
+    @Param('id') id: string,
+    @Body('portfolios') portfolios: string[],
+  ) {
+    return this.committeeService.addPortfolios(id, portfolios);
+  }
+
+  @Delete(':id/portfolio')
+  removePortfolio(
+    @Param('id') id: string,
+    @Body('portfolio') portfolio: string,
+  ) {
+    return this.committeeService.removePortfolio(id, portfolio);
   }
 }

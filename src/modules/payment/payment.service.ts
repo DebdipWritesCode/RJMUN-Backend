@@ -17,11 +17,12 @@ export class PaymentService {
     this.razorpay = new Razorpay({ key_id, key_secret });
   }
 
-  async createOrder(amount: number) {
+  async createOrder(amount: number, metadata?: any) {
     const order = await this.razorpay.orders.create({
       amount: amount * 100,
       currency: 'INR',
       payment_capture: true,
+      notes: metadata || {},
     });
 
     return order;
