@@ -41,9 +41,12 @@ export class CommitteesController {
     return this.committeeService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.committeeService.findOne(id);
+  @Put(':id/portfolios')
+  updatePortfolios(
+    @Param('id') id: string,
+    @Body('portfolios') portfolios: string[],
+  ) {
+    return this.committeeService.updatePortfolios(id, portfolios);
   }
 
   @Put(':id')
@@ -65,24 +68,8 @@ export class CommitteesController {
     return this.committeeService.remove(id);
   }
 
-  @Post(':id/portfolio')
-  addPortfolio(@Param('id') id: string, @Body('portfolio') portfolio: string) {
-    return this.committeeService.addPortfolio(id, portfolio);
-  }
-
-  @Post(':id/portfolios')
-  addPortfolios(
-    @Param('id') id: string,
-    @Body('portfolios') portfolios: string[],
-  ) {
-    return this.committeeService.addPortfolios(id, portfolios);
-  }
-
-  @Delete(':id/portfolio')
-  removePortfolio(
-    @Param('id') id: string,
-    @Body('portfolio') portfolio: string,
-  ) {
-    return this.committeeService.removePortfolio(id, portfolio);
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.committeeService.findOne(id);
   }
 }

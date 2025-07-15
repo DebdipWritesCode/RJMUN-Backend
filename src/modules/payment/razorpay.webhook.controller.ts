@@ -71,6 +71,7 @@ export class RazorpayWebhookController {
         saved.portfolioPreference2ForCommitteePreference1 || '',
         saved.portfolioPreference1ForCommitteePreference2,
         saved.portfolioPreference2ForCommitteePreference2 || '',
+        saved.paymentStatus = 'completed',
         new Date().toLocaleString(),
       ];
 

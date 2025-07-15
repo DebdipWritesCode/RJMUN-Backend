@@ -73,51 +73,17 @@ export class CommitteesService {
     return deleted;
   }
 
-  async addPortfolio(id: string, portfolio: string) {
-    const updated = await this.committeeModel.findByIdAndUpdate(
-      id,
-      { $addToSet: { portfolios: portfolio } },
-      { new: true },
-    );
-
-    if (!updated) {
-      throw new NotFoundException(`Committee with id ${id} not found`);
-    }
-
-    return updated;
-  }
-
-  async addPortfolios(id: string, portfolios: string[]) {
-    const updated = await this.committeeModel.findByIdAndUpdate(
-      id,
-      { $addToSet: { portfolios: { $each: portfolios } } },
-      { new: true },
-    );
-
-    if (!updated) {
-      throw new NotFoundException(`Committee with id ${id} not found`);
-    }
-
-    return updated;
-  }
-
-  async removePortfolio(id: string, portfolio: string) {
-    const updated = await this.committeeModel.findByIdAndUpdate(
-      id,
-      { $pull: { portfolios: portfolio } },
-      { new: true },
-    );
-
-    if (!updated) {
-      throw new NotFoundException(`Committee with id ${id} not found`);
-    }
-
-    return updated;
-  }
-
   async getAllCommitteePortfolios() {
     return this.committeeModel
       .find({}, { _id: 1, name: 1, portfolios: 1 })
       .lean();
+  }
+
+  async updatePortfolios(id: string, portfolios: string[]) {
+    const committee = await this.committeeModel.findById(id);
+    if (!committee) throw new NotFoundException('Committee not found');
+
+    committee.portfolios = portfolios;
+    return committee.save();
   }
 }

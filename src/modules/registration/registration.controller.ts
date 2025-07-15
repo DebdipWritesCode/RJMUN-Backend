@@ -10,9 +10,10 @@ import {
 } from '@nestjs/common';
 import { RegistrationService } from './registration.service';
 import { CreateRegistrationDto } from './dto/create-registration.dto';
-import { UpdateAllotmentDto } from './dto/update-allotment';
+import { UpdateAllotmentDto } from './dto/update-allotment.dto';
 import { CouponsService } from '../coupons/coupons.service';
 import { PaymentService } from '../payment/payment.service';
+import { BulkUpdateAllotmentDto } from './dto/bulk-update-allotment.dto';
 
 @Controller('registration')
 export class RegistrationController {
@@ -55,7 +56,7 @@ export class RegistrationController {
     const metadata = {
       ...data,
       couponCode: couponCode || null,
-    }
+    };
 
     const order = await this.paymentService.createOrder(finalAmount, metadata);
 
@@ -71,14 +72,19 @@ export class RegistrationController {
     return this.registrationService.create(dto);
   }
 
+  @Get('registrants')
+  async getRegistrants() {
+    return this.registrationService.getAllRegistrants();
+  }
+
   @Get('status/:registrationId')
   async checkStatus(@Param('registrationId') id: string) {
     return this.registrationService.getStatus(id);
   }
 
   @Patch('allot')
-  async allot(@Body() dto: UpdateAllotmentDto) {
-    return this.registrationService.updateAllotment(dto);
+  async allot(@Body() dto: BulkUpdateAllotmentDto) {
+    return this.registrationService.bulkUpdateAllotments(dto.allotments);
   }
 
   @Delete(':id')
