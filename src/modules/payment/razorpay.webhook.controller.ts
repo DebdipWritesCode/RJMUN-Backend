@@ -14,6 +14,7 @@ import { Response } from 'express';
 import { CreateRegistrationDto } from '../registration/dto/create-registration.dto';
 import { EmailService } from '../email/email.service';
 import { SheetsService } from '../sheets/sheets.service';
+import { CouponsService } from '../coupons/coupons.service';
 
 @Controller('razorpay.webhook')
 export class RazorpayWebhookController {
@@ -23,6 +24,7 @@ export class RazorpayWebhookController {
     private readonly registrationService: RegistrationService,
     private readonly sheetsService: SheetsService,
     private readonly emailService: EmailService,
+    private readonly couponsService: CouponsService,
   ) {}
 
   @Post('webhook')
@@ -36,10 +38,7 @@ export class RazorpayWebhookController {
 
     const isValid = isDev
       ? true
-      : this.paymentService.verifySignature(
-          JSON.stringify(body),
-          signature,
-        );
+      : this.paymentService.verifySignature(JSON.stringify(body), signature);
 
     if (!isValid) return res.status(400).json({ message: 'Invalid signature' });
 
@@ -47,9 +46,18 @@ export class RazorpayWebhookController {
     const paymentEntity = payload?.payment?.entity;
 
     if (body.event === 'payment.captured') {
-      const metadata: CreateRegistrationDto = paymentEntity?.notes;
+      const metadata: CreateRegistrationDto & { couponCode?: string } = paymentEntity?.notes;
+      const couponCode = metadata?.couponCode;
 
       const saved = await this.registrationService.create(metadata);
+
+      if (couponCode) {
+        const coupon = await this.couponsService.findByCode(couponCode);
+
+        if (coupon && coupon.redemptionsLeft > 0) {
+          await this.couponsService.decrementRedemption(couponCode);
+        }
+      }
 
       const row = [
         saved.registrationId,
@@ -69,8 +77,8 @@ export class RazorpayWebhookController {
       await this.sheetsService.appendRegistrationData(
         row,
         process.env.REGISTRATION_SHEET_ID || '',
-        "Sheet1!A1"
-      )
+        'Sheet1!A1',
+      );
 
       await this.emailService.sendRegistrationConfirmation(
         saved.email,

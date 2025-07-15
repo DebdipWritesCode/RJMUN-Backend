@@ -43,4 +43,10 @@ export class CouponsService {
     const result = await this.couponModel.findByIdAndDelete(id).exec();
     if (!result) throw new NotFoundException('Coupon not found');
   }
+
+  async decrementRedemption(code: string) {
+    await this.couponModel
+      .findOneAndUpdate({ code }, { $inc: { redemptionsLeft: -1 } })
+      .exec();
+  }
 }

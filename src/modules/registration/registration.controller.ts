@@ -22,7 +22,7 @@ export class RegistrationController {
     private readonly paymentService: PaymentService,
   ) {}
 
-  private readonly BASE_AMOUNT = 400;
+  private readonly BASE_AMOUNT = 1000;
 
   @Post('initiate')
   async initiateRegistration(
@@ -52,7 +52,12 @@ export class RegistrationController {
       finalAmount -= coupon.amountOff;
     }
 
-    const order = await this.paymentService.createOrder(finalAmount, data);
+    const metadata = {
+      ...data,
+      couponCode: couponCode || null,
+    }
+
+    const order = await this.paymentService.createOrder(finalAmount, metadata);
 
     return {
       order,
