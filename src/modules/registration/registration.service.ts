@@ -6,12 +6,14 @@ import { CreateRegistrationDto } from './dto/create-registration.dto';
 import { RegistrantSummaryDto } from './dto/registration-summary.dto';
 import { v4 as uuidv4 } from 'uuid';
 import { UpdateAllotmentDto } from './dto/update-allotment.dto';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class RegistrationService {
   constructor(
     @InjectModel(Registration.name)
     private readonly registrationModel: Model<RegistrationDocument>,
+    private readonly emailService: EmailService,
   ) {}
 
   async create(dto: CreateRegistrationDto) {
@@ -103,6 +105,34 @@ export class RegistrationService {
       updated: allotments.length - failed.length,
       failed,
     };
+  }
+
+  async sendAllotmentEmails() {
+    const allotted = await this.registrationModel.find({
+      allotmentStatus: 'allotted',
+    });
+
+    const results = {
+      sent: 0,
+      failed: [] as string[],
+    };
+
+    for (const reg of allotted) {
+      try {
+        await this.emailService.sendAllotmentEmail(
+          reg.email,
+          reg.fullName,
+          reg.allottedCommittee || 'N/A',
+          reg.allottedPortfolio || 'N/A',
+        );
+        results.sent++;
+      } catch (err) {
+        results.failed.push(reg.registrationId);
+        console.error(`Failed to send to ${reg.email}:`, err);
+      }
+    }
+
+    return results;
   }
 
   async delete(id: string) {

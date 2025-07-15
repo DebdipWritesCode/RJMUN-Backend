@@ -10,7 +10,6 @@ import {
 } from '@nestjs/common';
 import { RegistrationService } from './registration.service';
 import { CreateRegistrationDto } from './dto/create-registration.dto';
-import { UpdateAllotmentDto } from './dto/update-allotment.dto';
 import { CouponsService } from '../coupons/coupons.service';
 import { PaymentService } from '../payment/payment.service';
 import { BulkUpdateAllotmentDto } from './dto/bulk-update-allotment.dto';
@@ -85,6 +84,11 @@ export class RegistrationController {
   @Patch('allot')
   async allot(@Body() dto: BulkUpdateAllotmentDto) {
     return this.registrationService.bulkUpdateAllotments(dto.allotments);
+  }
+
+  @Post('send-allotment-emails')
+  async sendAllotmentEmails() {
+    return this.registrationService.sendAllotmentEmails();
   }
 
   @Delete(':id')
