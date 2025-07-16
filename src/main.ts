@@ -2,7 +2,10 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 
+console.log('🔄 Starting NestJS bootstrap...');
+
 async function bootstrap() {
+  console.log('⚙️  Creating NestJS app...');
   const app = await NestFactory.create(AppModule, {
     cors: {
       origin: [
@@ -12,6 +15,7 @@ async function bootstrap() {
     },
   });
 
+  console.log('✅ App created. Setting up global pipes...');
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -19,6 +23,14 @@ async function bootstrap() {
     }),
   );
 
-  await app.listen(process.env.PORT ?? 3000);
+  const port = process.env.PORT ?? 3000;
+  console.log(`🚀 Starting app on port ${port}...`);
+
+  await app.listen(port);
+
+  console.log(`✅ App is now listening on port ${port}`);
 }
-bootstrap();
+
+bootstrap().catch((err) => {
+  console.error('❌ Error during bootstrap:', err);
+});
