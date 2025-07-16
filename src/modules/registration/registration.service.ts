@@ -86,6 +86,10 @@ export class RegistrationService {
     const failed: string[] = [];
 
     const operations = allotments.map(async (dto) => {
+      if (!dto.allottedCommittee?.trim() && !dto.allottedPortfolio?.trim()) {
+        return;
+      }
+
       const updated = await this.registrationModel.findOneAndUpdate(
         { registrationId: dto.registrationId },
         {
@@ -96,13 +100,19 @@ export class RegistrationService {
         { new: true },
       );
 
-      if (!updated) failed.push(dto.registrationId);
+      if (!updated) {
+        failed.push(dto.registrationId);
+      }
     });
 
     await Promise.all(operations);
 
+    const attempted = allotments.filter(
+      (dto) => dto.allottedCommittee?.trim() || dto.allottedPortfolio?.trim(),
+    ).length;
+
     return {
-      updated: allotments.length - failed.length,
+      updated: attempted - failed.length,
       failed,
     };
   }
