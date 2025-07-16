@@ -1,23 +1,23 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { google } from 'googleapis';
 
 @Injectable()
-export class SheetsService implements OnModuleInit {
+export class SheetsService {
   private sheets: any;
 
-  async onModuleInit() {
-    const raw = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-
-    if (!raw) {
-      throw new Error('Missing GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable.');
-    }
-
-    let credentials;
-    try {
-      credentials = JSON.parse(raw);
-    } catch (err) {
-      throw new Error('Invalid JSON in GOOGLE_APPLICATION_CREDENTIALS_JSON env variable.');
-    }
+  constructor() {
+    const credentials = {
+      type: process.env.GOOGLE_TYPE,
+      project_id: process.env.GOOGLE_PROJECT_ID,
+      private_key_id: process.env.GOOGLE_PRIVATE_KEY_ID,
+      private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'), // fix for escaped \n
+      client_email: process.env.GOOGLE_CLIENT_EMAIL,
+      client_id: process.env.GOOGLE_CLIENT_ID,
+      auth_uri: process.env.GOOGLE_AUTH_URI,
+      token_uri: process.env.GOOGLE_TOKEN_URI,
+      auth_provider_x509_cert_url: process.env.GOOGLE_AUTH_PROVIDER_X509_CERT_URL,
+      client_x509_cert_url: process.env.GOOGLE_CLIENT_X509_CERT_URL,
+    };
 
     const auth = new google.auth.GoogleAuth({
       credentials,
