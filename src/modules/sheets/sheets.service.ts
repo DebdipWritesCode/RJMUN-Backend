@@ -17,6 +17,7 @@ export class SheetsService {
       token_uri: process.env.GOOGLE_TOKEN_URI,
       auth_provider_x509_cert_url: process.env.GOOGLE_AUTH_PROVIDER_X509_CERT_URL,
       client_x509_cert_url: process.env.GOOGLE_CLIENT_X509_CERT_URL,
+      universe_domain: process.env.GOOGLE_UNIVERSAL_DOMAIN || 'googleapis.com',
     };
 
     const auth = new google.auth.GoogleAuth({
