@@ -21,6 +21,14 @@ export class CreateRegistrationDto {
   @IsString()
   institution: string;
 
+  @IsOptional()
+  @IsString()
+  paymentId?: string;
+
+  @IsOptional()
+  @IsString()
+  paymentStatus?: string;
+
   @IsNotEmpty()
   @IsString()
   committeePreference1: string;

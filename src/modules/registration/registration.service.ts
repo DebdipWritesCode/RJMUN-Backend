@@ -27,6 +27,10 @@ export class RegistrationService {
     return await newReg.save();
   }
 
+  async findByPaymentId(paymentId: string) {
+    return this.registrationModel.findOne({ paymentId }).lean();
+  }
+
   async getAllRegistrants(): Promise<RegistrantSummaryDto[]> {
     const registrants = await this.registrationModel
       .find(
