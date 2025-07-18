@@ -6,6 +6,7 @@ import { RegistrationController } from './registration.controller';
 import { PaymentModule } from '../payment/payment.module';
 import { CouponsModule } from '../coupons/coupons.module';
 import { EmailModule } from '../email/email.module';
+import { SheetsModule } from '../sheets/sheets.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { EmailModule } from '../email/email.module';
     forwardRef(() => PaymentModule),
     CouponsModule,
     EmailModule,
+    SheetsModule,
   ],
   controllers: [RegistrationController],
   providers: [RegistrationService],
