@@ -163,6 +163,8 @@ export class RegistrationService {
       allottedCommittee: { $exists: true, $ne: null },
     });
 
+    console.log(`Found ${registrations.length} allotted registrations`);
+
     const committeeMap = new Map<
       string,
       {
@@ -192,21 +194,21 @@ export class RegistrationService {
           allottedPortfolio: reg.allottedPortfolio,
         });
       }
-
-      const allotmentsData = Array.from(committeeMap.entries()).map(
-        ([committee, entries]) => ({
-          committee,
-          entries,
-        }),
-      );
-
-      await this.sheetsService.updateAllotments(spreadsheetId, allotmentsData);
-
-      return {
-        message: 'Allotment sheets updated successfully',
-        totalCommittees: allotmentsData.length,
-      };
     }
+
+    const allotmentsData = Array.from(committeeMap.entries()).map(
+      ([committee, entries]) => ({
+        committee,
+        entries,
+      }),
+    );
+
+    await this.sheetsService.updateAllotments(spreadsheetId, allotmentsData);
+
+    return {
+      message: 'Allotment sheets updated successfully',
+      totalCommittees: allotmentsData.length,
+    };
   }
 
   async delete(id: string) {
