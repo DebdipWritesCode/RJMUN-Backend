@@ -79,6 +79,7 @@ export class RazorpayWebhookController {
         saved.email,
         saved.phone,
         saved.institution,
+        saved.numberOfMUNsParticipated,
         saved.committeePreference1,
         saved.committeePreference2 || '',
         saved.portfolioPreference1ForCommitteePreference1,

@@ -41,6 +41,7 @@ export class RegistrationService {
           institution: 1,
           committeePreference1: 1,
           committeePreference2: 1,
+          numberOfMUNsParticipated: 1,
           portfolioPreference1ForCommitteePreference1: 1,
           portfolioPreference2ForCommitteePreference1: 1,
           portfolioPreference1ForCommitteePreference2: 1,

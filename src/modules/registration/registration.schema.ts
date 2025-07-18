@@ -9,6 +9,8 @@ export class Registration {
   @Prop({ required: true }) email: string;
   @Prop({ required: true }) phone: string;
   @Prop({ required: true }) institution: string;
+  @Prop({ required: true, min: 0 })
+  numberOfMUNsParticipated: number;
 
   @Prop({ required: true }) committeePreference1: string;
   @Prop() committeePreference2: string;
