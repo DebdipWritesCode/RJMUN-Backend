@@ -5,11 +5,9 @@ export class UpdateAllotmentDto {
   @IsString()
   registrationId: string;
 
-  @IsNotEmpty()
   @IsString()
   allottedCommittee: string;
 
-  @IsNotEmpty()
   @IsString()
   allottedPortfolio: string;
 }

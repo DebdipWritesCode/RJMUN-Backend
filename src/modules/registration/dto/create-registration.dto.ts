@@ -1,9 +1,11 @@
 import {
   IsEmail,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   Matches,
+  Min,
 } from 'class-validator';
 
 export class CreateRegistrationDto {
@@ -20,6 +22,14 @@ export class CreateRegistrationDto {
   @IsNotEmpty()
   @IsString()
   institution: string;
+
+  @IsOptional()
+  @IsString()
+  paymentId?: string;
+
+  @IsOptional()
+  @IsString()
+  paymentStatus?: string;
 
   @IsNotEmpty()
   @IsString()
@@ -44,4 +54,9 @@ export class CreateRegistrationDto {
   @IsOptional()
   @IsString()
   portfolioPreference2ForCommitteePreference2?: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Min(0, { message: 'Number of MUNs participated must be zero or more' })
+  numberOfMUNsParticipated: number;
 }

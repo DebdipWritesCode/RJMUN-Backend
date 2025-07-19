@@ -9,6 +9,10 @@ export class CreateTeamMemberDto {
   @IsNotEmpty()
   position: string;
 
+  @IsString()
+  @IsNotEmpty()
+  type: 'super' | 'head' | 'manager';
+
   @IsOptional()
   @IsString()
   @IsUrl()

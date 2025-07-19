@@ -91,6 +91,11 @@ export class RegistrationController {
     return this.registrationService.sendAllotmentEmails();
   }
 
+  @Post('update-allotments-sheets')
+  async updateAllotmentsSheets() {
+    return this.registrationService.updateAllotmentsSheets();
+  }
+
   @Delete(':id')
   async delete(@Param('id') id: string) {
     return this.registrationService.delete(id);

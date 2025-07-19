@@ -44,12 +44,26 @@ export class RazorpayWebhookController {
 
     const { payload } = body;
     const paymentEntity = payload?.payment?.entity;
+    const paymentId = paymentEntity?.id;
 
     if (body.event === 'payment.captured') {
       const metadata: CreateRegistrationDto & { couponCode?: string } = paymentEntity?.notes;
       const couponCode = metadata?.couponCode;
 
-      const saved = await this.registrationService.create(metadata);
+      const existing = await this.registrationService.findByPaymentId(
+        paymentId,
+      );
+
+      if (existing) {
+        console.log(`Payment ${paymentId} already processed.`);
+        return res.json({ message: 'Payment already processed' });
+      }
+
+      const saved = await this.registrationService.create({
+        ...metadata,
+        paymentId,
+        paymentStatus: 'completed',
+      });
 
       if (couponCode) {
         const coupon = await this.couponsService.findByCode(couponCode);
@@ -65,6 +79,7 @@ export class RazorpayWebhookController {
         saved.email,
         saved.phone,
         saved.institution,
+        saved.numberOfMUNsParticipated,
         saved.committeePreference1,
         saved.committeePreference2 || '',
         saved.portfolioPreference1ForCommitteePreference1,
