@@ -22,7 +22,7 @@ export class RegistrationController {
     private readonly paymentService: PaymentService,
   ) {}
 
-  private readonly BASE_AMOUNT = 1000;
+  private readonly BASE_AMOUNT = 1200;
 
   @Post('initiate')
   async initiateRegistration(
