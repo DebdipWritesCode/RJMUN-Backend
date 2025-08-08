@@ -13,6 +13,8 @@ import { CreateRegistrationDto } from './dto/create-registration.dto';
 import { CouponsService } from '../coupons/coupons.service';
 import { PaymentService } from '../payment/payment.service';
 import { BulkUpdateAllotmentDto } from './dto/bulk-update-allotment.dto';
+import { EmailService } from '../email/email.service';
+import { SheetsService } from '../sheets/sheets.service';
 
 @Controller('registration')
 export class RegistrationController {
@@ -20,6 +22,8 @@ export class RegistrationController {
     private readonly registrationService: RegistrationService,
     private readonly couponsService: CouponsService,
     private readonly paymentService: PaymentService,
+    private readonly sheetsService: SheetsService,
+    private readonly emailService: EmailService,
   ) {}
 
   private readonly BASE_AMOUNT = 1200;
@@ -56,6 +60,63 @@ export class RegistrationController {
       ...data,
       couponCode: couponCode || null,
     };
+
+    if (finalAmount <= 0) {
+      const fakePaymentId = `FREE-${Date.now()}`;
+
+      await this.registrationService.create({
+        ...metadata,
+        paymentId: fakePaymentId,
+        paymentStatus: 'completed',
+      });
+
+      if (couponCode) {
+        const coupon = await this.couponsService.findByCode(couponCode);
+        if (coupon && coupon.redemptionsLeft > 0) {
+          await this.couponsService.decrementRedemption(couponCode);
+        }
+      }
+
+      const saved = await this.registrationService.findByPaymentId(fakePaymentId);
+      if (!saved) {
+        throw new BadRequestException('Registration not found');
+      }
+      
+      const row = [
+        saved.registrationId,
+        saved.fullName,
+        saved.email,
+        saved.phone,
+        saved.institution,
+        saved.numberOfMUNsParticipated,
+        saved.committeePreference1,
+        saved.committeePreference2 || '',
+        saved.portfolioPreference1ForCommitteePreference1,
+        saved.portfolioPreference2ForCommitteePreference1 || '',
+        saved.portfolioPreference1ForCommitteePreference2,
+        saved.portfolioPreference2ForCommitteePreference2 || '',
+        saved.paymentStatus,
+        new Date().toLocaleString(),
+      ];
+      await this.sheetsService.appendRegistrationData(
+        row,
+        process.env.REGISTRATION_SHEET_ID || '',
+        'Sheet1!A1',
+      );
+
+      await this.emailService.sendRegistrationConfirmation(
+        saved.email,
+        saved.registrationId,
+        saved.fullName,
+      );
+
+      return {
+        message: 'Registration completed without payment',
+        registrationId: saved.registrationId,
+        finalAmount: 0,
+        currency: 'INR',
+      };
+    }
 
     const order = await this.paymentService.createOrder(finalAmount, metadata);
 
