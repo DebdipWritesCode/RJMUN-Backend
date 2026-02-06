@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as crypto from 'crypto';
 const Razorpay = require('razorpay');
 
 @Injectable()
@@ -29,8 +30,7 @@ export class PaymentService {
   }
 
   verifySignature(body: any, signature: string) {
-    const crypto = require('crypto');
-    const secret = this.configService.get<string>('RAZORPAY_KEY_SECRET');
+    const secret = this.configService.get<string>('RAZORPAY_KEY_SECRET')!;
 
     const expectedSignature = crypto
       .createHmac('sha256', secret)
@@ -38,5 +38,19 @@ export class PaymentService {
       .digest('hex');
 
     return expectedSignature === signature;
+  }
+
+  verifyPaymentSuccess(orderId: string, paymentId: string, signature: string): boolean {
+    const secret = this.configService.get<string>('RAZORPAY_KEY_SECRET')!;
+    const payload = `${orderId}|${paymentId}`;
+    const expectedSignature = crypto
+      .createHmac('sha256', secret)
+      .update(payload)
+      .digest('hex');
+    return expectedSignature === signature;
+  }
+
+  async fetchPayment(paymentId: string) {
+    return this.razorpay.payments.fetch(paymentId);
   }
 }
