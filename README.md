@@ -13,7 +13,7 @@ This is the **backend** for the [RJMUN](https://rjmun.in) (Ramakrishna Junior Mo
 * [MongoDB](https://www.mongodb.com/) — Database
 * [Razorpay](https://razorpay.com/) — Payment integration
 * [Google Sheets API](https://developers.google.com/sheets/api) — Used for registration data
-* [Nodemailer](https://nodemailer.com/) — Email confirmations
+* [Resend](https://resend.com/) — Email confirmations
 * [TypeScript](https://www.typescriptlang.org/)
 
 ---
@@ -48,9 +48,9 @@ RAZORPAY_KEY_SECRET=
 # App environment
 NODE_ENV=development
 
-# Email service (e.g. Gmail SMTP)
-EMAIL_USER=
-EMAIL_PASS= # App-specific password (if using Gmail)
+# Resend (email)
+RESEND_API_KEY=       # From https://resend.com/api-keys
+RESEND_FROM_EMAIL=    # e.g. "RJMUN 3.0 <noreply@rjmun-backend.shop>" (must use a verified domain in Resend)
 
 # Google Sheets integration
 REGISTRATION_SHEET_ID=

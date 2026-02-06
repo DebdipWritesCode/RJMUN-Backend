@@ -1,21 +1,27 @@
 import { Injectable } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { registrationConfirmationTemplate } from './templates/registration-confirmation.template';
 import { caConfirmationTemplate } from './templates/ca-confirmation.template';
 import { allotmentConfirmationTemplate } from './templates/allotment-confirmation.template';
 
 @Injectable()
 export class EmailService {
-  private transporter;
+  private resend: Resend;
 
   constructor() {
-    this.transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      throw new Error('RESEND_API_KEY is required for sending emails');
+    }
+    this.resend = new Resend(apiKey);
+  }
+
+  private get from(): string {
+    const from = process.env.RESEND_FROM_EMAIL;
+    if (!from) {
+      throw new Error('RESEND_FROM_EMAIL is required (e.g. "RJMUN 3.0 <noreply@rjmun-backend.shop>")');
+    }
+    return from;
   }
 
   async sendRegistrationConfirmation(
@@ -24,15 +30,14 @@ export class EmailService {
     fullName: string,
   ) {
     const html = registrationConfirmationTemplate(fullName, regId);
-
-    const mailOptions = {
-      from: `"RJMUN" <${process.env.EMAIL_USER}>`,
+    const { data, error } = await this.resend.emails.send({
+      from: this.from,
       to,
       subject: 'RJMUN Registration Confirmation',
       html,
-    };
-
-    return await this.transporter.sendMail(mailOptions);
+    });
+    if (error) throw error;
+    return data;
   }
 
   async sendCAConfirmationEmail(
@@ -41,15 +46,14 @@ export class EmailService {
     institution: string,
   ) {
     const html = caConfirmationTemplate(fullName, institution);
-
-    const mailOptions = {
-      from: `"RJMUN" <${process.env.EMAIL_USER}>`,
+    const { data, error } = await this.resend.emails.send({
+      from: this.from,
       to,
       subject: 'RJMUN CA Registration Confirmation',
       html,
-    };
-
-    return await this.transporter.sendMail(mailOptions);
+    });
+    if (error) throw error;
+    return data;
   }
 
   async sendAllotmentEmail(
@@ -59,14 +63,13 @@ export class EmailService {
     portfolio: string,
   ) {
     const html = allotmentConfirmationTemplate(fullName, committee, portfolio);
-
-    const mailOptions = {
-      from: `"RJMUN" <${process.env.EMAIL_USER}>`,
+    const { data, error } = await this.resend.emails.send({
+      from: this.from,
       to,
       subject: 'Your RJMUN Allotment Details',
       html,
-    };
-
-    return await this.transporter.sendMail(mailOptions);
+    });
+    if (error) throw error;
+    return data;
   }
 }
