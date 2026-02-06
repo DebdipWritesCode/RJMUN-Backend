@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Registration, RegistrationDocument } from './registration.schema';
-import { Model } from 'mongoose';
+import { ClientSession, Model } from 'mongoose';
 import { CreateRegistrationDto } from './dto/create-registration.dto';
 import { RegistrantSummaryDto } from './dto/registration-summary.dto';
 import { v4 as uuidv4 } from 'uuid';
@@ -18,7 +18,7 @@ export class RegistrationService {
     private readonly sheetsService: SheetsService,
   ) {}
 
-  async create(dto: CreateRegistrationDto) {
+  async create(dto: CreateRegistrationDto, session?: ClientSession) {
     const registrationId = 'RJMUN' + uuidv4().split('-')[0].toUpperCase();
 
     const newReg = new this.registrationModel({
@@ -26,11 +26,15 @@ export class RegistrationService {
       registrationId,
     });
 
-    return await newReg.save();
+    return await newReg.save({ session });
   }
 
-  async findByPaymentId(paymentId: string) {
-    return this.registrationModel.findOne({ paymentId }).lean();
+  async findByPaymentId(paymentId: string, session?: ClientSession) {
+    const query = this.registrationModel.findOne({ paymentId }).lean();
+    if (session) {
+      query.session(session);
+    }
+    return await query.exec();
   }
 
   async getAllRegistrants(): Promise<RegistrantSummaryDto[]> {

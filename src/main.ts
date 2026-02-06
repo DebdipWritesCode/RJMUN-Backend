@@ -10,6 +10,9 @@ async function bootstrap() {
     cors: {
       origin: [
         'https://rjmun-frontend.vercel.app',
+        'https://rjmun.in',
+        'https://www.rjmun.in',
+        'https://mun.rjmun.in',
         'http://localhost:5173',
       ],
     },

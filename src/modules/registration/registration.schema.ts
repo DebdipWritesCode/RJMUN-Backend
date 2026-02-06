@@ -19,12 +19,12 @@ export class Registration {
   @Prop({ required: true }) portfolioPreference1ForCommitteePreference2: string;
   @Prop() portfolioPreference2ForCommitteePreference2: string;
 
-  @Prop() registrationId: string;
+  @Prop({ unique: true }) registrationId: string;
   @Prop({ default: 'pending' }) paymentStatus:
     | 'pending'
     | 'completed'
     | 'failed';
-  @Prop() paymentId: string;
+  @Prop({ unique: true }) paymentId: string;
 
   @Prop({ default: 'not_allotted' }) allotmentStatus:
     | 'not_allotted'

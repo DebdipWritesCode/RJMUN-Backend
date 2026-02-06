@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { ClientSession, Model } from 'mongoose';
 import { Coupon, CouponDocument } from './coupons.schema';
 import { CreateCouponDto } from './dto/create-coupon.dto';
 import { UpdateCouponDto } from './dto/update-coupon.dto';
@@ -25,9 +25,19 @@ export class CouponsService {
     return coupon;
   }
 
-  async findByCode(code: string): Promise<Coupon> {
-    const coupon = await this.couponModel.findOne({ code }).exec();
-    if (!coupon) throw new NotFoundException('Coupon not found');
+  async findByCode(code: string, session?: ClientSession): Promise<Coupon> {
+    const query = this.couponModel.findOne({ code });
+
+    if (session) {
+      query.session(session);
+    }
+
+    const coupon = await query.exec();
+
+    if (!coupon) {
+      throw new NotFoundException('Coupon not found');
+    }
+
     return coupon;
   }
 
@@ -44,9 +54,17 @@ export class CouponsService {
     if (!result) throw new NotFoundException('Coupon not found');
   }
 
-  async decrementRedemption(code: string) {
-    await this.couponModel
-      .findOneAndUpdate({ code }, { $inc: { redemptionsLeft: -1 } })
-      .exec();
+  async decrementRedemption(code: string, session?: ClientSession) {
+    const query = this.couponModel.findOneAndUpdate(
+      { code },
+      { $inc: { redemptionsLeft: -1 } },
+      { new: true },
+    );
+
+    if (session) {
+      query.session(session);
+    }
+
+    await query.exec();
   }
 }
