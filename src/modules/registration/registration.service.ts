@@ -84,6 +84,7 @@ export class RegistrationService {
         allotmentStatus: 'allotted',
         allottedCommittee: dto.allottedCommittee,
         allottedPortfolio: dto.allottedPortfolio,
+        isAllotmentUpdated: true,
       },
       { new: true },
     );
@@ -107,6 +108,7 @@ export class RegistrationService {
           allotmentStatus: 'allotted',
           allottedCommittee: dto.allottedCommittee,
           allottedPortfolio: dto.allottedPortfolio,
+          isAllotmentUpdated: true,
         },
         { new: true },
       );
@@ -131,12 +133,14 @@ export class RegistrationService {
   async sendAllotmentEmails() {
     const allotted = await this.registrationModel.find({
       allotmentStatus: 'allotted',
+      isAllotmentUpdated: true,
     });
 
     const results = {
       sent: 0,
       failed: [] as string[],
     };
+    const sentIds: typeof allotted[0]['_id'][] = [];
 
     for (const reg of allotted) {
       try {
@@ -147,10 +151,18 @@ export class RegistrationService {
           reg.allottedPortfolio || 'N/A',
         );
         results.sent++;
+        sentIds.push(reg._id);
       } catch (err) {
         results.failed.push(reg.registrationId);
         console.error(`Failed to send to ${reg.email}:`, err);
       }
+    }
+
+    if (sentIds.length > 0) {
+      await this.registrationModel.updateMany(
+        { _id: { $in: sentIds } },
+        { $set: { isAllotmentUpdated: false } },
+      );
     }
 
     return results;

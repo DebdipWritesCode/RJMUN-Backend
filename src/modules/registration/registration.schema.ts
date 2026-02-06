@@ -31,6 +31,7 @@ export class Registration {
     | 'allotted';
   @Prop() allottedCommittee?: string;
   @Prop() allottedPortfolio?: string;
+  @Prop({ default: false }) isAllotmentUpdated?: boolean;
   @Prop() couponCode?: string;
 
   @Prop({ default: Date.now }) createdAt: Date;
