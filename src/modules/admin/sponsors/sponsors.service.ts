@@ -4,28 +4,38 @@ import { Model } from 'mongoose';
 import { Sponsor, SponsorDocument } from './sponsor.schema';
 import { CreateSponsorDto } from './dto/create-sponsor.dto';
 import { UpdateSponsorDto } from './dto/update-sponsor.dto';
+import { CloudinaryService } from '../../cloudinary/cloudinary.service';
+
+const CLOUDINARY_FOLDER = 'rjmun/sponsors';
 
 @Injectable()
 export class SponsorsService {
   constructor(
     @InjectModel(Sponsor.name) private sponsorModel: Model<SponsorDocument>,
+    private readonly cloudinary: CloudinaryService,
   ) {}
 
   async create(
     data: CreateSponsorDto & { image?: Buffer; imageMimeType?: string },
   ): Promise<Sponsor> {
-    return this.sponsorModel.create(data);
+    const payload: Record<string, unknown> = {
+      name: data.name,
+      type: data.type,
+    };
+    if (data.image) {
+      const { url, publicId } = await this.cloudinary.upload(
+        data.image,
+        CLOUDINARY_FOLDER,
+        data.imageMimeType,
+      );
+      payload.imageUrl = url;
+      payload.imagePublicId = publicId;
+    }
+    return this.sponsorModel.create(payload) as Promise<Sponsor>;
   }
 
   async findAll(): Promise<any[]> {
-    const sponsors = await this.sponsorModel.find().lean();
-
-    return sponsors.map((sponsor) => ({
-      ...sponsor,
-      imageUrl: sponsor.image
-        ? `data:${sponsor.imageMimeType};base64,${sponsor.image.toString('base64')}`
-        : null,
-    }));
+    return this.sponsorModel.find().lean();
   }
 
   async findOne(id: string): Promise<any> {
@@ -33,25 +43,29 @@ export class SponsorsService {
     if (!sponsor) {
       throw new NotFoundException(`Sponsor with id ${id} not found`);
     }
-
-    return {
-      ...sponsor,
-      imageUrl: sponsor.image
-        ? `data:${sponsor.imageMimeType};base64,${sponsor.image.toString('base64')}`
-        : null,
-    };
+    return sponsor;
   }
 
   async update(
     id: string,
     updateDto: UpdateSponsorDto & { image?: Buffer; imageMimeType?: string },
   ): Promise<Sponsor> {
-    const updatePayload: any = { ...updateDto };
-
-    if (!updateDto.image) {
-      delete updatePayload.image;
-      delete updatePayload.imageMimeType;
+    const updatePayload: Record<string, unknown> = { ...updateDto };
+    if (updateDto.image) {
+      const existing = await this.sponsorModel.findById(id).lean().exec();
+      if (existing?.imagePublicId) {
+        await this.cloudinary.delete(existing.imagePublicId as string);
+      }
+      const { url, publicId } = await this.cloudinary.upload(
+        updateDto.image,
+        CLOUDINARY_FOLDER,
+        updateDto.imageMimeType,
+      );
+      updatePayload.imageUrl = url;
+      updatePayload.imagePublicId = publicId;
     }
+    delete updatePayload.image;
+    delete updatePayload.imageMimeType;
 
     const updated = await this.sponsorModel
       .findByIdAndUpdate(id, updatePayload, {

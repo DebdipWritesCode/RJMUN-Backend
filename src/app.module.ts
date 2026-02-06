@@ -6,6 +6,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
 import { AdminModule } from './modules/admin/admin.module';
+import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
 import { CaModule } from './modules/ca/ca.module';
 import { EmailModule } from './modules/email/email.module';
 import { PaymentModule } from './modules/payment/payment.module';
@@ -32,6 +33,7 @@ import { CouponsModule } from './modules/coupons/coupons.module';
       inject: [ConfigService],
     }),
 
+    CloudinaryModule,
     AdminModule,
     CaModule,
     EmailModule,

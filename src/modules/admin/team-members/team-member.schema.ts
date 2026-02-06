@@ -11,8 +11,8 @@ export class TeamMember {
   @Prop({ required: true }) position: string;
   @Prop({ required: true, enum: ['super', 'head', 'manager'] })
   type: TeamMemberTypeEnum;
-  @Prop({ type: Buffer }) image: Buffer;
-  @Prop() imageMimeType: string;
+  @Prop() imageUrl?: string;
+  @Prop() imagePublicId?: string;
 }
 
 export const TeamMemberSchema = SchemaFactory.createForClass(TeamMember);

@@ -4,28 +4,39 @@ import { Model } from 'mongoose';
 import { EB, EBDocument } from './eb.schema';
 import { CreateEbDto } from './dto/create-eb.dto';
 import { UpdateEbDto } from './dto/update-eb.dto';
+import { CloudinaryService } from '../../cloudinary/cloudinary.service';
+
+const CLOUDINARY_FOLDER = 'rjmun/eb';
 
 @Injectable()
 export class EbService {
   constructor(
     @InjectModel(EB.name) private ebModel: Model<EBDocument>,
+    private readonly cloudinary: CloudinaryService,
   ) {}
 
   async create(
     data: CreateEbDto & { image?: Buffer; imageMimeType?: string },
   ): Promise<EB> {
-    return this.ebModel.create(data);
+    const payload: Record<string, unknown> = {
+      name: data.name,
+      position: data.position,
+      committee: data.committee,
+    };
+    if (data.image) {
+      const { url, publicId } = await this.cloudinary.upload(
+        data.image,
+        CLOUDINARY_FOLDER,
+        data.imageMimeType,
+      );
+      payload.imageUrl = url;
+      payload.imagePublicId = publicId;
+    }
+    return this.ebModel.create(payload) as Promise<EB>;
   }
 
   async findAll(): Promise<any[]> {
-    const ebs = await this.ebModel.find().lean();
-
-    return ebs.map((eb) => ({
-      ...eb,
-      imageUrl: eb.image
-        ? `data:${eb.imageMimeType};base64,${eb.image.toString('base64')}`
-        : null,
-    }));
+    return this.ebModel.find().lean();
   }
 
   async findOne(id: string): Promise<any> {
@@ -33,25 +44,29 @@ export class EbService {
     if (!eb) {
       throw new NotFoundException(`EB with id ${id} not found`);
     }
-
-    return {
-      ...eb,
-      imageUrl: eb.image
-        ? `data:${eb.imageMimeType};base64,${eb.image.toString('base64')}`
-        : null,
-    };
+    return eb;
   }
 
   async update(
     id: string,
     updateDto: UpdateEbDto & { image?: Buffer; imageMimeType?: string },
   ): Promise<EB> {
-    const updatePayload: any = { ...updateDto };
-
-    if (!updateDto.image) {
-      delete updatePayload.image;
-      delete updatePayload.imageMimeType;
+    const updatePayload: Record<string, unknown> = { ...updateDto };
+    if (updateDto.image) {
+      const existing = await this.ebModel.findById(id).lean().exec();
+      if (existing?.imagePublicId) {
+        await this.cloudinary.delete(existing.imagePublicId as string);
+      }
+      const { url, publicId } = await this.cloudinary.upload(
+        updateDto.image,
+        CLOUDINARY_FOLDER,
+        updateDto.imageMimeType,
+      );
+      updatePayload.imageUrl = url;
+      updatePayload.imagePublicId = publicId;
     }
+    delete updatePayload.image;
+    delete updatePayload.imageMimeType;
 
     const updated = await this.ebModel
       .findByIdAndUpdate(id, updatePayload, {

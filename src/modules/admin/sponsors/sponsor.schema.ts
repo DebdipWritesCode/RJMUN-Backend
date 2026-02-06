@@ -10,8 +10,8 @@ export class Sponsor {
   @Prop({ required: true }) name: string;
   @Prop({ required: true, enum: ['partner', 'college', 'endorsement'] })
   type: SponsorType;
-  @Prop({ type: Buffer }) image: Buffer;
-  @Prop() imageMimeType: string;
+  @Prop() imageUrl?: string;
+  @Prop() imagePublicId?: string;
 }
 
 export const SponsorSchema = SchemaFactory.createForClass(Sponsor);

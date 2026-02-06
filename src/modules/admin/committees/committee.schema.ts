@@ -8,8 +8,8 @@ export class Committee {
   @Prop({ required: true }) name: string;
   @Prop({ required: true }) agenda: string;
   @Prop() backgroundGuideURL: string;
-  @Prop({ type: Buffer }) image: Buffer;
-  @Prop() imageMimeType: string;
+  @Prop() imageUrl?: string;
+  @Prop() imagePublicId?: string;
   @Prop({ type: [String], required: false }) portfolios?: string[];
 }
 
