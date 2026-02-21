@@ -8,9 +8,9 @@ async function bootstrap() {
   console.log('⚙️  Creating NestJS app...');
 
   const defaultOrigins = [
+    'https://www.rjmun.in',
     'https://rjmun-frontend.vercel.app',
     'https://rjmun.in',
-    'https://www.rjmun.in',
     'https://mun.rjmun.in',
   ];
   const envOrigins = process.env.CORS_ORIGINS
