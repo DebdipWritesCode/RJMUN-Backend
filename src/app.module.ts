@@ -11,6 +11,7 @@ import { CaModule } from './modules/ca/ca.module';
 import { EmailModule } from './modules/email/email.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { RegistrationModule } from './modules/registration/registration.module';
+import { DayRegistrationModule } from './modules/day-registration/day-registration.module';
 import { SheetsModule } from './modules/sheets/sheets.module';
 import { CouponsModule } from './modules/coupons/coupons.module';
 
@@ -39,6 +40,7 @@ import { CouponsModule } from './modules/coupons/coupons.module';
     EmailModule,
     PaymentModule,
     RegistrationModule,
+    DayRegistrationModule,
     SheetsModule,
     CouponsModule,
   ],

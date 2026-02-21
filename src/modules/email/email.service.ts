@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Resend } from 'resend';
 import { registrationConfirmationTemplate } from './templates/registration-confirmation.template';
+import { dayRegistrationConfirmationTemplate } from './templates/day-registration-confirmation.template';
 import { caConfirmationTemplate } from './templates/ca-confirmation.template';
 import { allotmentConfirmationTemplate } from './templates/allotment-confirmation.template';
 
@@ -34,6 +35,27 @@ export class EmailService {
       from: this.from,
       to,
       subject: 'RJMUN Registration Confirmation',
+      html,
+    });
+    if (error) throw error;
+    return data;
+  }
+
+  async sendDayRegistrationConfirmation(
+    to: string,
+    registrationId: string,
+    firstName: string,
+    selectedDaysSummary: string,
+  ) {
+    const html = dayRegistrationConfirmationTemplate(
+      firstName,
+      registrationId,
+      selectedDaysSummary,
+    );
+    const { data, error } = await this.resend.emails.send({
+      from: this.from,
+      to,
+      subject: 'Fest Day Registration Confirmation',
       html,
     });
     if (error) throw error;

@@ -53,10 +53,14 @@ export class PaymentController {
         paymentId,
         payment.notes || {},
       );
+      const fullName =
+        'fullName' in saved && saved.fullName
+          ? saved.fullName
+          : `${(saved as any).firstName || ''} ${(saved as any).lastName || ''}`.trim();
       return {
         message: 'Payment confirmed and registration created',
         registrationId: saved.registrationId,
-        fullName: saved.fullName,
+        fullName,
         email: saved.email,
       };
     } catch (err) {
