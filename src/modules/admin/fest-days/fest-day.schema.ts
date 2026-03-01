@@ -10,6 +10,12 @@ export class FestDayEvent {
 
   @Prop()
   description?: string;
+
+  @Prop()
+  imageUrl?: string;
+
+  @Prop()
+  imagePublicId?: string;
 }
 
 export const FestDayEventSchema = SchemaFactory.createForClass(FestDayEvent);

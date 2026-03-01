@@ -4,8 +4,11 @@ import {
   IsString,
   Min,
   IsOptional,
+  IsArray,
+  ValidateNested,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
+import { CreateFestDayEventDto } from './create-fest-day-event.dto';
 
 export class CreateFestDayDto {
   @IsString()
@@ -37,5 +40,8 @@ export class CreateFestDayDto {
   imagePublicId?: string;
 
   @IsOptional()
-  events?: any; // Can be string (JSON) or array - service handles parsing
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateFestDayEventDto)
+  events?: CreateFestDayEventDto[]; // Can be string (JSON) or array - service handles parsing
 }

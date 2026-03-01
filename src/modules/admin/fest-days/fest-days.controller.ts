@@ -7,9 +7,11 @@ import {
   Body,
   Param,
   UploadedFile,
+  UploadedFiles,
   UseInterceptors,
+  Req,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { FestDaysService } from './fest-days.service';
 import { CreateFestDayDto } from './dto/create-fest-day.dto';
 import { UpdateFestDayDto } from './dto/update-fest-day.dto';
@@ -20,15 +22,20 @@ export class FestDaysController {
   constructor(private readonly festDaysService: FestDaysService) {}
 
   @Post()
-  @UseInterceptors(FileInterceptor('image'))
+  @UseInterceptors(AnyFilesInterceptor())
   create(
     @Body() dto: CreateFestDayDto,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFiles() files: Express.Multer.File[] = [],
+    @Req() req: any,
   ) {
+    const mainFile = files?.find((f) => f.fieldname === 'image');
+    const eventFiles = files?.filter((f) => f.fieldname.startsWith('event_'));
+
     return this.festDaysService.create({
       ...dto,
-      image: file?.buffer,
-      imageMimeType: file?.mimetype,
+      image: mainFile?.buffer,
+      imageMimeType: mainFile?.mimetype,
+      eventFiles: eventFiles || [],
     });
   }
 
@@ -53,16 +60,20 @@ export class FestDaysController {
   }
 
   @Put(':id')
-  @UseInterceptors(FileInterceptor('image'))
+  @UseInterceptors(AnyFilesInterceptor())
   update(
     @Param('id') id: string,
     @Body() dto: UpdateFestDayDto,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFiles() files: Express.Multer.File[] = [],
   ) {
+    const mainFile = files?.find((f) => f.fieldname === 'image');
+    const eventFiles = files?.filter((f) => f.fieldname.startsWith('event_'));
+
     return this.festDaysService.update(id, {
       ...dto,
-      image: file?.buffer,
-      imageMimeType: file?.mimetype,
+      image: mainFile?.buffer,
+      imageMimeType: mainFile?.mimetype,
+      eventFiles: eventFiles || [],
     });
   }
 
