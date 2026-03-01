@@ -22,11 +22,26 @@ export class FestDaysService {
   async create(
     dto: CreateFestDayDto & { image?: Buffer; imageMimeType?: string },
   ): Promise<FestDay> {
+    // Parse events if it comes as a stringified JSON (from FormData)
+    let parsedEvents: any[] = [];
+    if (dto.events) {
+      if (typeof dto.events === 'string') {
+        try {
+          parsedEvents = JSON.parse(dto.events);
+        } catch {
+          parsedEvents = [];
+        }
+      } else if (Array.isArray(dto.events)) {
+        parsedEvents = dto.events;
+      }
+    }
+
     const payload: Record<string, unknown> = {
       date: dto.date,
       name: dto.name,
-      events: Array.isArray(dto.events) ? dto.events : [],
+      description: dto.description,
       price: dto.price,
+      events: parsedEvents,
     };
     if (dto.image) {
       const { url, publicId } = await this.cloudinary.upload(
@@ -61,6 +76,21 @@ export class FestDaysService {
     dto: UpdateFestDayDto & { image?: Buffer; imageMimeType?: string },
   ): Promise<FestDay> {
     const updatePayload: Record<string, unknown> = { ...dto };
+
+
+    // Parse events if it comes as a stringified JSON (from FormData)
+    if (dto.events !== undefined) {
+      if (typeof dto.events === 'string') {
+        try {
+          updatePayload.events = JSON.parse(dto.events);
+        } catch {
+          updatePayload.events = [];
+        }
+      } else if (Array.isArray(dto.events)) {
+        updatePayload.events = dto.events;
+      }
+    }
+
     if (dto.image) {
       const existing = await this.festDayModel.findById(id).lean().exec();
       if (existing?.imagePublicId) {

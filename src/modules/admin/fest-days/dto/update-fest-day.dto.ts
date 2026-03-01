@@ -1,5 +1,4 @@
 import {
-  IsArray,
   IsNumber,
   IsOptional,
   IsString,
@@ -17,26 +16,6 @@ export class UpdateFestDayDto {
   name?: string;
 
   @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  @Transform(({ value }) => {
-    if (value == null || value === '') return undefined;
-    if (Array.isArray(value)) return value;
-    if (typeof value === 'string') {
-      const trimmed = value.trim();
-      if (!trimmed) return undefined;
-      try {
-        const parsed = JSON.parse(trimmed);
-        return Array.isArray(parsed) ? parsed : [];
-      } catch {
-        return [value];
-      }
-    }
-    return [];
-  })
-  events?: string[];
-
-  @IsOptional()
   @IsNumber()
   @Min(0)
   @Transform(({ value }) => {
@@ -44,4 +23,22 @@ export class UpdateFestDayDto {
     return typeof value === 'string' ? Number(value) : value;
   })
   price?: number;
+
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) =>
+    value == null ? undefined : String(value).trim(),
+  )
+  description?: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  imagePublicId?: string;
+
+  @IsOptional()
+  events?: any; // Can be string (JSON) or array - service handles parsing
 }

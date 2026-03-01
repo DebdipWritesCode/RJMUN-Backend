@@ -6,7 +6,7 @@ This document describes what the frontend needs to implement for the **Fest Day 
 
 ## 1. Overview
 
-- **Admin**: Manage **fest days** (date, name, events, price, image) and **multi-day offers** (e.g. 10% off for 2 days, 15% off for 3 days).
+- **Admin**: Manage **fest days** (date, name, description, price, image) and **multi-day offers** (e.g. 10% off for 2 days, 15% off for 3 days).
 - **User**: Choose one or more fest days, enter details + optional coupon → pay via Razorpay (or get free if total is 0) → confirmation email.
 
 ---
@@ -38,7 +38,7 @@ All under: **`/fest-days`** (no `/admin` prefix; same as committees/eb).
 
 - `date` (string) – e.g. `"January 15"` (month name + date, no time)
 - `name` (string) – display name for the day
-- `events` (array of strings) – list of events/features; send as JSON string or repeated field as per your client
+- `description` (string) – rich-text description (HTML from WYSIWYG). See [FEST_DAY_DESCRIPTION_RICH_TEXT.md](./FEST_DAY_DESCRIPTION_RICH_TEXT.md).
 - `price` (number) – price in INR for that day
 - `image` (file, optional) – image file
 
@@ -53,12 +53,14 @@ All under: **`/fest-days`** (no `/admin` prefix; same as committees/eb).
   _id: string;
   date: string;           // e.g. "January 15"
   name: string;
-  events: string[];
+  description: string;    // HTML from WYSIWYG; sanitize before rendering
   price: number;
   imageUrl?: string;      // present if image was uploaded
   imagePublicId?: string;
 }
 ```
+
+For rich-text editing (bold, italic, bullets, etc.) and safe display, see **[FEST_DAY_DESCRIPTION_RICH_TEXT.md](./FEST_DAY_DESCRIPTION_RICH_TEXT.md)**.
 
 ---
 
@@ -121,7 +123,7 @@ Used to render the fest day options and show multi-day discounts.
       "_id": string,
       "date": string,
       "name": string,
-      "events": string[],
+      "description": string,
       "price": number,
       "imageUrl"?: string,
       "imagePublicId"?: string

@@ -1,5 +1,4 @@
 import {
-  IsArray,
   IsNotEmpty,
   IsNumber,
   IsString,
@@ -17,25 +16,26 @@ export class CreateFestDayDto {
   @IsNotEmpty()
   name: string;
 
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  @Transform(({ value }) => {
-    if (Array.isArray(value)) return value;
-    if (typeof value === 'string') {
-      try {
-        const parsed = JSON.parse(value);
-        return Array.isArray(parsed) ? parsed : [];
-      } catch {
-        return value ? [value] : [];
-      }
-    }
-    return [];
-  })
-  events?: string[];
-
   @IsNumber()
   @Min(0)
   @Transform(({ value }) => (typeof value === 'string' ? Number(value) : value))
   price: number;
+
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) =>
+    value == null || value === '' ? undefined : String(value).trim(),
+  )
+  description?: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  imagePublicId?: string;
+
+  @IsOptional()
+  events?: any; // Can be string (JSON) or array - service handles parsing
 }
