@@ -46,4 +46,8 @@ export class CreateDayRegistrationDto {
 
   @IsOptional()
   discountApplied?: number;
+
+  @IsOptional()
+  @IsString()
+  paymentScreenshotUrl?: string;
 }

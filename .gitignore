@@ -48,6 +48,8 @@ lerna-debug.log*
 
 credentials.json
 
+.claude
+
 # Runtime data
 pids
 *.pid

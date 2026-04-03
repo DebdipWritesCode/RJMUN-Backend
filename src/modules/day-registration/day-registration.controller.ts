@@ -5,7 +5,10 @@ import {
   Get,
   Param,
   Post,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { DayRegistrationService } from './day-registration.service';
 import { CreateDayRegistrationDto } from './dto/create-day-registration.dto';
 import { FestDaysService } from '../admin/fest-days/fest-days.service';
@@ -13,6 +16,7 @@ import { CouponsService } from '../coupons/coupons.service';
 import { PaymentService } from '../payment/payment.service';
 import { SheetsService } from '../sheets/sheets.service';
 import { EmailService } from '../email/email.service';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 @Controller('day-registration')
 export class DayRegistrationController {
@@ -23,6 +27,7 @@ export class DayRegistrationController {
     private readonly paymentService: PaymentService,
     private readonly sheetsService: SheetsService,
     private readonly emailService: EmailService,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   @Get('days')
@@ -140,6 +145,130 @@ export class DayRegistrationController {
       order,
       finalAmount,
       currency: 'INR',
+    };
+  }
+
+  @Post('register-with-qr')
+  @UseInterceptors(FileInterceptor('paymentScreenshot'))
+  async registerWithQr(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('data') dataString: string,
+    @Body('couponCode') couponCode?: string,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Payment screenshot is required');
+    }
+
+    let data: CreateDayRegistrationDto;
+    try {
+      data = JSON.parse(dataString);
+    } catch {
+      throw new BadRequestException('Invalid data format');
+    }
+
+    const dayIds = data.selectedDayIds || [];
+    if (dayIds.length === 0) {
+      throw new BadRequestException('Select at least one day');
+    }
+
+    const days = await this.festDaysService.findByIds(dayIds);
+    if (days.length !== dayIds.length) {
+      throw new BadRequestException('One or more selected days are invalid');
+    }
+
+    const sumPrices = days.reduce((s, d) => s + d.price, 0);
+    const offers = await this.festDaysService.getOffers();
+    const percentageOff = offers[String(dayIds.length)] ?? 0;
+    const subtotal = Math.round(sumPrices * (1 - percentageOff / 100));
+
+    let finalAmount = subtotal;
+
+    if (couponCode) {
+      const coupon = await this.couponsService.findByCode(couponCode);
+      if (!coupon) {
+        throw new BadRequestException('Invalid coupon code');
+      }
+      if (coupon.redemptionsLeft <= 0) {
+        throw new BadRequestException('Coupon has already been used');
+      }
+      finalAmount = subtotal - coupon.amountOff;
+      if (finalAmount < 0) {
+        throw new BadRequestException(
+          'This coupon is invalid for this order.',
+        );
+      }
+    }
+
+    const uploaded = await this.cloudinaryService.upload(
+      file.buffer,
+      'rjmun/payment-screenshots',
+      file.mimetype,
+    );
+
+    const qrPaymentId = `QR-${Date.now()}`;
+
+    await this.dayRegistrationService.create({
+      ...data,
+      paymentId: qrPaymentId,
+      paymentStatus: 'pending',
+      amountPaid: finalAmount,
+      discountApplied: subtotal - finalAmount,
+      couponCode: couponCode || undefined,
+      paymentScreenshotUrl: uploaded.url,
+    });
+
+    if (couponCode) {
+      const coupon = await this.couponsService.findByCode(couponCode);
+      if (coupon && coupon.redemptionsLeft > 0) {
+        await this.couponsService.decrementRedemption(couponCode);
+      }
+    }
+
+    const saved =
+      await this.dayRegistrationService.findByPaymentId(qrPaymentId);
+    if (!saved) {
+      throw new BadRequestException('Registration not found');
+    }
+
+    const row = this.dayRegistrationService.buildSheetRow(
+      {
+        registrationId: saved.registrationId,
+        firstName: saved.firstName,
+        lastName: saved.lastName,
+        email: saved.email,
+        phone: saved.phone,
+        paymentStatus: saved.paymentStatus,
+        amountPaid: saved.amountPaid,
+        createdAt: saved.createdAt,
+        paymentScreenshotUrl: uploaded.url,
+      },
+      days,
+    );
+    const sheetId = process.env.DAY_REGISTRATION_SHEET_ID || '';
+    if (sheetId) {
+      await this.sheetsService.appendRegistrationData(
+        row,
+        sheetId,
+        'Sheet1!A1',
+      );
+    }
+
+    const selectedDaysSummary = days
+      .map((d) => `${d.name} (${d.date})`)
+      .join(', ');
+    await this.emailService.sendDayRegistrationConfirmation(
+      saved.email,
+      saved.registrationId,
+      saved.firstName,
+      selectedDaysSummary,
+    );
+
+    return {
+      message: 'Registration submitted. Payment verification pending.',
+      registrationId: saved.registrationId,
+      finalAmount,
+      currency: 'INR',
+      paymentScreenshotUrl: uploaded.url,
     };
   }
 

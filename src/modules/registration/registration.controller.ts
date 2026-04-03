@@ -7,7 +7,10 @@ import {
   Param,
   Patch,
   Post,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { RegistrationService } from './registration.service';
 import { CreateRegistrationDto } from './dto/create-registration.dto';
 import { CouponsService } from '../coupons/coupons.service';
@@ -15,6 +18,7 @@ import { PaymentService } from '../payment/payment.service';
 import { BulkUpdateAllotmentDto } from './dto/bulk-update-allotment.dto';
 import { EmailService } from '../email/email.service';
 import { SheetsService } from '../sheets/sheets.service';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 @Controller('registration')
 export class RegistrationController {
@@ -24,6 +28,7 @@ export class RegistrationController {
     private readonly paymentService: PaymentService,
     private readonly sheetsService: SheetsService,
     private readonly emailService: EmailService,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   private readonly BASE_AMOUNT = 1200;
@@ -58,7 +63,7 @@ export class RegistrationController {
 
     const metadata = {
       ...data,
-      couponCode: couponCode || null,
+      couponCode: couponCode || undefined,
     };
 
     if (finalAmount <= 0) {
@@ -124,6 +129,113 @@ export class RegistrationController {
       order,
       finalAmount,
       currency: 'INR',
+    };
+  }
+
+  @Post('register-with-qr')
+  @UseInterceptors(FileInterceptor('paymentScreenshot'))
+  async registerWithQr(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('data') dataString: string,
+    @Body('couponCode') couponCode?: string,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Payment screenshot is required');
+    }
+
+    let data: CreateRegistrationDto;
+    try {
+      data = JSON.parse(dataString);
+    } catch {
+      throw new BadRequestException('Invalid data format');
+    }
+
+    let finalAmount = this.BASE_AMOUNT;
+
+    if (couponCode) {
+      const coupon = await this.couponsService.findByCode(couponCode);
+
+      if (!coupon) {
+        throw new BadRequestException('Invalid coupon code');
+      }
+
+      if (coupon.redemptionsLeft <= 0) {
+        throw new BadRequestException('Coupon has already been used');
+      }
+
+      if (coupon.amountOff > this.BASE_AMOUNT) {
+        throw new BadRequestException(
+          'Coupon discount exceeds the base amount',
+        );
+      }
+
+      finalAmount -= coupon.amountOff;
+    }
+
+    const uploaded = await this.cloudinaryService.upload(
+      file.buffer,
+      'rjmun/payment-screenshots',
+      file.mimetype,
+    );
+
+    const qrPaymentId = `QR-${Date.now()}`;
+
+    await this.registrationService.create({
+      ...data,
+      paymentId: qrPaymentId,
+      paymentStatus: 'pending',
+      paymentScreenshotUrl: uploaded.url,
+      couponCode: couponCode || undefined,
+    });
+
+    if (couponCode) {
+      const coupon = await this.couponsService.findByCode(couponCode);
+      if (coupon && coupon.redemptionsLeft > 0) {
+        await this.couponsService.decrementRedemption(couponCode);
+      }
+    }
+
+    const saved =
+      await this.registrationService.findByPaymentId(qrPaymentId);
+    if (!saved) {
+      throw new BadRequestException('Registration not found');
+    }
+
+    const row = [
+      saved.registrationId,
+      saved.fullName,
+      saved.email,
+      saved.phone,
+      saved.institution,
+      saved.numberOfMUNsParticipated,
+      saved.committeePreference1,
+      saved.committeePreference2 || '',
+      saved.portfolioPreference1ForCommitteePreference1,
+      saved.portfolioPreference2ForCommitteePreference1 || '',
+      saved.portfolioPreference1ForCommitteePreference2,
+      saved.portfolioPreference2ForCommitteePreference2 || '',
+      saved.paymentStatus,
+      new Date().toLocaleString(),
+      uploaded.url,
+    ];
+    await this.sheetsService.appendRegistrationData(
+      row,
+      process.env.REGISTRATION_SHEET_ID || '',
+      'Sheet1!A1',
+    );
+
+    await this.emailService.sendRegistrationConfirmation(
+      saved.email,
+      saved.registrationId,
+      saved.fullName,
+    );
+
+    return {
+      message: 'Registration submitted. Payment verification pending.',
+      registrationId: saved.registrationId,
+      finalAmount,
+      currency: 'INR',
+      paymentScreenshotUrl: uploaded.url,
     };
   }
 
