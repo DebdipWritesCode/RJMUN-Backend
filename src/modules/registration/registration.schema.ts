@@ -33,6 +33,7 @@ export class Registration {
   @Prop() allottedPortfolio?: string;
   @Prop({ default: false }) isAllotmentUpdated?: boolean;
   @Prop() couponCode?: string;
+  @Prop() paymentScreenshotUrl?: string;
 
   @Prop({ default: Date.now }) createdAt: Date;
 }

@@ -59,4 +59,12 @@ export class CreateRegistrationDto {
   @IsNumber()
   @Min(0, { message: 'Number of MUNs participated must be zero or more' })
   numberOfMUNsParticipated: number;
+
+  @IsOptional()
+  @IsString()
+  couponCode?: string;
+
+  @IsOptional()
+  @IsString()
+  paymentScreenshotUrl?: string;
 }

@@ -78,6 +78,7 @@ export class DayRegistrationService {
       paymentStatus: string;
       amountPaid?: number;
       createdAt: Date;
+      paymentScreenshotUrl?: string;
     },
     days: { name: string; date: string }[],
   ): unknown[] {
@@ -92,6 +93,7 @@ export class DayRegistrationService {
       reg.amountPaid ?? '',
       reg.paymentStatus,
       new Date(reg.createdAt).toLocaleString(),
+      reg.paymentScreenshotUrl ?? '',
     ];
   }
 }

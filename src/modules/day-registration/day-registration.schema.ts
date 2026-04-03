@@ -38,6 +38,9 @@ export class DayRegistration {
   @Prop()
   discountApplied?: number;
 
+  @Prop()
+  paymentScreenshotUrl?: string;
+
   @Prop({ default: Date.now })
   createdAt: Date;
 }
