@@ -29,6 +29,7 @@ export class DayRegistrationService {
       email: dto.email,
       phone: dto.phone,
       selectedDayIds,
+      selectedActivitiesPerDay: dto.selectedActivitiesPerDay || {},
       registrationId,
       paymentId: dto.paymentId,
       paymentStatus: dto.paymentStatus || 'pending',
@@ -79,10 +80,34 @@ export class DayRegistrationService {
       amountPaid?: number;
       createdAt: Date;
       paymentScreenshotUrl?: string;
+      selectedActivitiesPerDay?: Record<string, number[]>;
     },
-    days: { name: string; date: string }[],
+    days: any[],
   ): unknown[] {
     const dayNames = days.map((d) => `${d.name} (${d.date})`).join('; ');
+    
+    // Format selected activities
+    let selectedActivitiesText = '';
+    if (reg.selectedActivitiesPerDay && Object.keys(reg.selectedActivitiesPerDay).length > 0) {
+      const activitiesPerDay = days.map((day) => {
+        const dayId = day._id?.toString();
+        const activityIndices = dayId ? reg.selectedActivitiesPerDay?.[dayId] : undefined;
+        
+        if (activityIndices && activityIndices.length > 0 && day.events) {
+          const selectedActivities = activityIndices
+            .map((idx) => day.events?.[idx]?.title)
+            .filter(Boolean)
+            .join(', ');
+          
+          return `${day.name}: ${selectedActivities}`;
+        }
+        return day.name;
+      });
+      selectedActivitiesText = activitiesPerDay.join(' | ');
+    } else {
+      selectedActivitiesText = 'None';
+    }
+    
     return [
       reg.registrationId,
       reg.firstName,
@@ -90,6 +115,7 @@ export class DayRegistrationService {
       reg.email,
       reg.phone,
       dayNames,
+      selectedActivitiesText,
       reg.amountPaid ?? '',
       reg.paymentStatus,
       new Date(reg.createdAt).toLocaleString(),

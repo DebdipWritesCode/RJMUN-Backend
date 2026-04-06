@@ -30,6 +30,37 @@ export class DayRegistrationController {
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
+  private validateSelectedActivities(
+    selectedActivitiesPerDay?: Record<string, number[]>,
+  ): void {
+    if (!selectedActivitiesPerDay) {
+      return;
+    }
+
+    for (const [dayId, activityIndices] of Object.entries(
+      selectedActivitiesPerDay,
+    )) {
+      if (!Array.isArray(activityIndices)) {
+        throw new BadRequestException(
+          `Activities for day ${dayId} must be an array`,
+        );
+      }
+
+      if (activityIndices.length > 3) {
+        throw new BadRequestException(
+          `Maximum 3 activities allowed per day. Day ${dayId} has ${activityIndices.length} activities selected`,
+        );
+      }
+
+      // Validate that all indices are numbers
+      if (!activityIndices.every((idx) => typeof idx === 'number')) {
+        throw new BadRequestException(
+          `Invalid activity indices for day ${dayId}. All indices must be numbers`,
+        );
+      }
+    }
+  }
+
   @Get('days')
   async getDays() {
     const days = await this.festDaysService.findAll();
@@ -37,11 +68,72 @@ export class DayRegistrationController {
     return { days, offers };
   }
 
+  @Post('calculate-amount')
+  async calculateAmount(
+    @Body() body: { selectedDayIds: string[]; couponCode?: string; selectedActivitiesPerDay?: Record<string, number[]> },
+  ) {
+    const { selectedDayIds, couponCode, selectedActivitiesPerDay } = body;
+
+    this.validateSelectedActivities(selectedActivitiesPerDay);
+
+    const dayIds = selectedDayIds || [];
+    if (dayIds.length === 0) {
+      throw new BadRequestException('Select at least one day');
+    }
+
+    const days = await this.festDaysService.findByIds(dayIds);
+    if (days.length !== dayIds.length) {
+      throw new BadRequestException('One or more selected days are invalid');
+    }
+
+    const sumPrices = days.reduce((s, d) => s + d.price, 0);
+    const offers = await this.festDaysService.getOffers();
+    const percentageOff = offers[String(dayIds.length)] ?? 0;
+    const subtotal = Math.round(sumPrices * (1 - percentageOff / 100));
+    const discountFromMultiDay = sumPrices - subtotal;
+
+    let finalAmount = subtotal;
+    let discountFromCoupon = 0;
+    let couponDetails: { code: string; discountAmount: number } | null = null;
+
+    if (couponCode) {
+      const coupon = await this.couponsService.findByCode(couponCode);
+      if (!coupon) {
+        throw new BadRequestException('Invalid coupon code');
+      }
+      if (coupon.redemptionsLeft <= 0) {
+        throw new BadRequestException('Coupon has already been used');
+      }
+      discountFromCoupon = coupon.amountOff;
+      finalAmount = subtotal - discountFromCoupon;
+      if (finalAmount < 0) {
+        throw new BadRequestException(
+          'This coupon is invalid for this order.',
+        );
+      }
+      couponDetails = {
+        code: couponCode,
+        discountAmount: discountFromCoupon,
+      };
+    }
+
+    return {
+      subtotal,
+      discountFromMultiDay,
+      discountFromCoupon,
+      finalAmount,
+      coupon: couponDetails,
+      currency: 'INR',
+    };
+  }
+
   @Post('initiate')
   async initiate(
     @Body() body: { data: CreateDayRegistrationDto; couponCode?: string },
   ) {
     const { data, couponCode } = body;
+
+    this.validateSelectedActivities(data.selectedActivitiesPerDay);
 
     const dayIds = data.selectedDayIds || [];
     if (dayIds.length === 0) {
@@ -125,11 +217,32 @@ export class DayRegistrationController {
       const selectedDaysSummary = days
         .map((d) => `${d.name} (${d.date})`)
         .join(', ');
+
+      // Build days with activities for email
+      const daysWithActivities = days.map((day) => {
+        const dayId = day._id?.toString();
+        const activityIndices = dayId ? saved.selectedActivitiesPerDay?.[dayId] : undefined;
+        
+        const activities =
+          activityIndices && activityIndices.length > 0 && day.events
+            ? activityIndices
+                .map((idx) => day.events?.[idx]?.title)
+                .filter(Boolean) as string[]
+            : [];
+
+        return {
+          dayName: day.name,
+          dayDate: day.date,
+          activities,
+        };
+      });
+
       await this.emailService.sendDayRegistrationConfirmation(
         saved.email,
         saved.registrationId,
         saved.firstName,
         selectedDaysSummary,
+        daysWithActivities,
       );
 
       return {
@@ -165,6 +278,8 @@ export class DayRegistrationController {
     } catch {
       throw new BadRequestException('Invalid data format');
     }
+
+    this.validateSelectedActivities(data.selectedActivitiesPerDay);
 
     const dayIds = data.selectedDayIds || [];
     if (dayIds.length === 0) {
@@ -241,6 +356,7 @@ export class DayRegistrationController {
         amountPaid: saved.amountPaid,
         createdAt: saved.createdAt,
         paymentScreenshotUrl: uploaded.url,
+        selectedActivitiesPerDay: saved.selectedActivitiesPerDay,
       },
       days,
     );
@@ -256,11 +372,32 @@ export class DayRegistrationController {
     const selectedDaysSummary = days
       .map((d) => `${d.name} (${d.date})`)
       .join(', ');
+
+    // Build days with activities for email
+    const daysWithActivities = days.map((day) => {
+      const dayId = day._id?.toString();
+      const activityIndices = dayId ? saved.selectedActivitiesPerDay?.[dayId] : undefined;
+      
+      const activities =
+        activityIndices && activityIndices.length > 0 && day.events
+          ? activityIndices
+              .map((idx) => day.events?.[idx]?.title)
+              .filter(Boolean) as string[]
+          : [];
+
+      return {
+        dayName: day.name,
+        dayDate: day.date,
+        activities,
+      };
+    });
+
     await this.emailService.sendDayRegistrationConfirmation(
       saved.email,
       saved.registrationId,
       saved.firstName,
       selectedDaysSummary,
+      daysWithActivities,
     );
 
     return {

@@ -46,11 +46,17 @@ export class EmailService {
     registrationId: string,
     firstName: string,
     selectedDaysSummary: string,
+    daysWithActivities?: Array<{
+      dayName: string;
+      dayDate: string;
+      activities: string[];
+    }>,
   ) {
     const html = dayRegistrationConfirmationTemplate(
       firstName,
       registrationId,
       selectedDaysSummary,
+      daysWithActivities,
     );
     const { data, error } = await this.resend.emails.send({
       from: this.from,

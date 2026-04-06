@@ -33,6 +33,48 @@ export class RegistrationController {
 
   private readonly BASE_AMOUNT = 1200;
 
+  @Post('calculate-amount')
+  async calculateAmount(@Body() body: { couponCode?: string }) {
+    const { couponCode } = body;
+
+    let finalAmount = this.BASE_AMOUNT;
+    let discountFromCoupon = 0;
+    let couponDetails: { code: string; discountAmount: number } | null = null;
+
+    if (couponCode) {
+      const coupon = await this.couponsService.findByCode(couponCode);
+
+      if (!coupon) {
+        throw new BadRequestException('Invalid coupon code');
+      }
+
+      if (coupon.redemptionsLeft <= 0) {
+        throw new BadRequestException('Coupon has already been used');
+      }
+
+      if (coupon.amountOff > this.BASE_AMOUNT) {
+        throw new BadRequestException(
+          'Coupon discount exceeds the base amount',
+        );
+      }
+
+      discountFromCoupon = coupon.amountOff;
+      finalAmount = this.BASE_AMOUNT - discountFromCoupon;
+      couponDetails = {
+        code: couponCode,
+        discountAmount: discountFromCoupon,
+      };
+    }
+
+    return {
+      baseAmount: this.BASE_AMOUNT,
+      discountFromCoupon,
+      finalAmount,
+      coupon: couponDetails,
+      currency: 'INR',
+    };
+  }
+
   @Post('initiate')
   async initiateRegistration(
     @Body() body: { data: CreateRegistrationDto; couponCode?: string },

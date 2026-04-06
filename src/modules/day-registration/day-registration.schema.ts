@@ -20,6 +20,9 @@ export class DayRegistration {
   @Prop({ type: [Types.ObjectId], ref: 'FestDay', required: true })
   selectedDayIds: Types.ObjectId[];
 
+  @Prop({ type: Object, default: {} })
+  selectedActivitiesPerDay?: Record<string, number[]>; // dayId -> activity indices
+
   @Prop({ unique: true })
   registrationId: string;
 

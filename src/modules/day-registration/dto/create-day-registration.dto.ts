@@ -6,6 +6,7 @@ import {
   IsString,
   Matches,
   ArrayMinSize,
+  IsObject,
 } from 'class-validator';
 import { IsMongoId } from 'class-validator';
 
@@ -28,6 +29,10 @@ export class CreateDayRegistrationDto {
   @ArrayMinSize(1, { message: 'Select at least one day' })
   @IsMongoId({ each: true })
   selectedDayIds: string[];
+
+  @IsOptional()
+  @IsObject()
+  selectedActivitiesPerDay?: Record<string, number[]>; // dayId -> activity indices
 
   @IsOptional()
   @IsString()
