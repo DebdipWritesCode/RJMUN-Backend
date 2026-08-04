@@ -37,7 +37,7 @@ export class CommitteesService {
   }
 
   async findAll() {
-    return this.committeeModel.find().lean();
+    return this.committeeModel.find({ archived: { $ne: true } }).lean();
   }
 
   async findOne(id: string): Promise<Committee> {
@@ -93,7 +93,7 @@ export class CommitteesService {
 
   async getAllCommitteePortfolios() {
     return this.committeeModel
-      .find({}, { _id: 1, name: 1, portfolios: 1 })
+      .find({ archived: { $ne: true } }, { _id: 1, name: 1, portfolios: 1 })
       .lean();
   }
 

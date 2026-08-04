@@ -1,5 +1,23 @@
 # RJMUN Website — Backend
 
+## Synchronize the 2026 brochure content
+
+The public committees, organizing team, DESTINIQUE schedule, and fest pricing
+are stored in MongoDB. Preview the idempotent 2026 brochure migration with:
+
+```bash
+npm run sync:brochure-2026
+```
+
+Apply it after reviewing the dry-run output:
+
+```bash
+npm run sync:brochure-2026 -- --apply
+```
+
+Entries from the previous schedule are archived rather than deleted, preserving
+historical registration references.
+
 This is the **backend** for the [RJMUN](https://rjmun.in) (Ramakrishna Junior Model United Nations) website, built using **NestJS**. It handles core application logic, authentication, payment integrations via Razorpay, and interacts with MongoDB and Google Sheets for registration data storage.
 
 > ⚠️ **Note**: This repository is **only one half** of the complete project. The frontend is located here:

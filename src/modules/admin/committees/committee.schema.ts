@@ -11,6 +11,7 @@ export class Committee {
   @Prop() imageUrl?: string;
   @Prop() imagePublicId?: string;
   @Prop({ type: [String], required: false }) portfolios?: string[];
+  @Prop({ default: false }) archived: boolean;
 }
 
 export const CommitteeSchema = SchemaFactory.createForClass(Committee);

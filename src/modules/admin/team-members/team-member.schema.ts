@@ -13,6 +13,7 @@ export class TeamMember {
   type: TeamMemberTypeEnum;
   @Prop() imageUrl?: string;
   @Prop() imagePublicId?: string;
+  @Prop({ default: false }) archived: boolean;
 }
 
 export const TeamMemberSchema = SchemaFactory.createForClass(TeamMember);
