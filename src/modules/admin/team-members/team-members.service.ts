@@ -37,7 +37,7 @@ export class TeamMembersService {
   }
 
   async findAll(): Promise<any[]> {
-    return this.teamMemberModel.find().lean();
+    return this.teamMemberModel.find({ archived: { $ne: true } }).lean();
   }
 
   async findOne(id: string): Promise<any> {

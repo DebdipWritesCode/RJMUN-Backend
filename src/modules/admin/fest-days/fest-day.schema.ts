@@ -42,6 +42,9 @@ export class FestDay {
 
   @Prop({ type: [FestDayEventSchema], default: [] })
   events: FestDayEvent[];
+
+  @Prop({ default: false })
+  archived: boolean;
 }
 
 export const FestDaySchema = SchemaFactory.createForClass(FestDay);

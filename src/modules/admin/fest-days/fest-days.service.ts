@@ -160,7 +160,7 @@ export class FestDaysService {
   }
 
   async findAll(): Promise<FestDay[]> {
-    return this.festDayModel.find().lean();
+    return this.festDayModel.find({ archived: { $ne: true } }).lean();
   }
 
   async findOne(id: string): Promise<FestDay> {
@@ -172,7 +172,9 @@ export class FestDaysService {
   }
 
   async findByIds(ids: string[]): Promise<FestDayDocument[]> {
-    return this.festDayModel.find({ _id: { $in: ids } }).exec();
+    return this.festDayModel
+      .find({ _id: { $in: ids }, archived: { $ne: true } })
+      .exec();
   }
 
   async update(
@@ -219,7 +221,10 @@ export class FestDaysService {
         try {
           await this.cloudinary.delete(publicId);
         } catch (error) {
-          console.error(`Failed to delete orphaned event image ${publicId}:`, error);
+          console.error(
+            `Failed to delete orphaned event image ${publicId}:`,
+            error,
+          );
         }
       }
 
