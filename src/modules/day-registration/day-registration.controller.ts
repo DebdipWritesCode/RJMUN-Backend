@@ -17,6 +17,11 @@ import { PaymentService } from '../payment/payment.service';
 import { SheetsService } from '../sheets/sheets.service';
 import { EmailService } from '../email/email.service';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import {
+  getRegistrationPricing,
+  isLegacyEarlyBirdCoupon,
+  REGISTRATION_PRICES,
+} from '../../common/registration-pricing';
 
 @Controller('day-registration')
 export class DayRegistrationController {
@@ -29,6 +34,31 @@ export class DayRegistrationController {
     private readonly emailService: EmailService,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
+
+  private assertCouponIsNotLegacyEarlyBird(couponCode?: string): void {
+    if (isLegacyEarlyBirdCoupon(couponCode)) {
+      throw new BadRequestException(
+        'Early-bird pricing is applied automatically; no code is required.',
+      );
+    }
+  }
+
+  private getFestPricing(dayCount: number, offers: Record<string, number>) {
+    const pricing = getRegistrationPricing();
+    const sumPrices = pricing.festDayAmount * dayCount;
+    const regularSubtotal = REGISTRATION_PRICES.festPerDay.regular * dayCount;
+    const percentageOff = offers[String(dayCount)] ?? 0;
+    const subtotal = Math.round(sumPrices * (1 - percentageOff / 100));
+
+    return {
+      pricing,
+      sumPrices,
+      regularSubtotal,
+      subtotal,
+      discountFromEarlyBird: regularSubtotal - sumPrices,
+      discountFromMultiDay: sumPrices - subtotal,
+    };
+  }
 
   private validateSelectedActivities(
     selectedActivitiesPerDay?: Record<string, number[]>,
@@ -65,12 +95,28 @@ export class DayRegistrationController {
   async getDays() {
     const days = await this.festDaysService.findAll();
     const offers = await this.festDaysService.getOffers();
-    return { days, offers };
+    const pricing = getRegistrationPricing();
+
+    return {
+      days: days.map((day) => ({ ...day, price: pricing.festDayAmount })),
+      offers,
+      pricing: {
+        phase: pricing.phase,
+        earlyBirdEndsAt: pricing.earlyBirdEndsAt,
+        perDayAmount: pricing.festDayAmount,
+        regularPerDayAmount: REGISTRATION_PRICES.festPerDay.regular,
+      },
+    };
   }
 
   @Post('calculate-amount')
   async calculateAmount(
-    @Body() body: { selectedDayIds: string[]; couponCode?: string; selectedActivitiesPerDay?: Record<string, number[]> },
+    @Body()
+    body: {
+      selectedDayIds: string[];
+      couponCode?: string;
+      selectedActivitiesPerDay?: Record<string, number[]>;
+    },
   ) {
     const { selectedDayIds, couponCode, selectedActivitiesPerDay } = body;
 
@@ -86,17 +132,21 @@ export class DayRegistrationController {
       throw new BadRequestException('One or more selected days are invalid');
     }
 
-    const sumPrices = days.reduce((s, d) => s + d.price, 0);
     const offers = await this.festDaysService.getOffers();
-    const percentageOff = offers[String(dayIds.length)] ?? 0;
-    const subtotal = Math.round(sumPrices * (1 - percentageOff / 100));
-    const discountFromMultiDay = sumPrices - subtotal;
+    const {
+      pricing,
+      regularSubtotal,
+      subtotal,
+      discountFromEarlyBird,
+      discountFromMultiDay,
+    } = this.getFestPricing(dayIds.length, offers);
 
     let finalAmount = subtotal;
     let discountFromCoupon = 0;
     let couponDetails: { code: string; discountAmount: number } | null = null;
 
     if (couponCode) {
+      this.assertCouponIsNotLegacyEarlyBird(couponCode);
       const coupon = await this.couponsService.findByCode(couponCode);
       if (!coupon) {
         throw new BadRequestException('Invalid coupon code');
@@ -107,9 +157,7 @@ export class DayRegistrationController {
       discountFromCoupon = coupon.amountOff;
       finalAmount = subtotal - discountFromCoupon;
       if (finalAmount < 0) {
-        throw new BadRequestException(
-          'This coupon is invalid for this order.',
-        );
+        throw new BadRequestException('This coupon is invalid for this order.');
       }
       couponDetails = {
         code: couponCode,
@@ -118,12 +166,16 @@ export class DayRegistrationController {
     }
 
     return {
+      regularSubtotal,
       subtotal,
+      discountFromEarlyBird,
       discountFromMultiDay,
       discountFromCoupon,
       finalAmount,
       coupon: couponDetails,
       currency: 'INR',
+      pricingPhase: pricing.phase,
+      earlyBirdEndsAt: pricing.earlyBirdEndsAt,
     };
   }
 
@@ -145,14 +197,13 @@ export class DayRegistrationController {
       throw new BadRequestException('One or more selected days are invalid');
     }
 
-    const sumPrices = days.reduce((s, d) => s + d.price, 0);
     const offers = await this.festDaysService.getOffers();
-    const percentageOff = offers[String(dayIds.length)] ?? 0;
-    const subtotal = Math.round(sumPrices * (1 - percentageOff / 100));
+    const { subtotal } = this.getFestPricing(dayIds.length, offers);
 
     let finalAmount = subtotal;
 
     if (couponCode) {
+      this.assertCouponIsNotLegacyEarlyBird(couponCode);
       const coupon = await this.couponsService.findByCode(couponCode);
       if (!coupon) {
         throw new BadRequestException('Invalid coupon code');
@@ -162,9 +213,7 @@ export class DayRegistrationController {
       }
       finalAmount = subtotal - coupon.amountOff;
       if (finalAmount < 0) {
-        throw new BadRequestException(
-          'This coupon is invalid for this order.',
-        );
+        throw new BadRequestException('This coupon is invalid for this order.');
       }
     }
 
@@ -197,9 +246,8 @@ export class DayRegistrationController {
         }
       }
 
-      const saved = await this.dayRegistrationService.findByPaymentId(
-        fakePaymentId,
-      );
+      const saved =
+        await this.dayRegistrationService.findByPaymentId(fakePaymentId);
       if (!saved) {
         throw new BadRequestException('Registration not found');
       }
@@ -221,13 +269,15 @@ export class DayRegistrationController {
       // Build days with activities for email
       const daysWithActivities = days.map((day) => {
         const dayId = day._id?.toString();
-        const activityIndices = dayId ? saved.selectedActivitiesPerDay?.[dayId] : undefined;
-        
+        const activityIndices = dayId
+          ? saved.selectedActivitiesPerDay?.[dayId]
+          : undefined;
+
         const activities =
           activityIndices && activityIndices.length > 0 && day.events
-            ? activityIndices
+            ? (activityIndices
                 .map((idx) => day.events?.[idx]?.title)
-                .filter(Boolean) as string[]
+                .filter(Boolean) as string[])
             : [];
 
         return {
@@ -291,14 +341,13 @@ export class DayRegistrationController {
       throw new BadRequestException('One or more selected days are invalid');
     }
 
-    const sumPrices = days.reduce((s, d) => s + d.price, 0);
     const offers = await this.festDaysService.getOffers();
-    const percentageOff = offers[String(dayIds.length)] ?? 0;
-    const subtotal = Math.round(sumPrices * (1 - percentageOff / 100));
+    const { pricing, subtotal } = this.getFestPricing(dayIds.length, offers);
 
     let finalAmount = subtotal;
 
     if (couponCode) {
+      this.assertCouponIsNotLegacyEarlyBird(couponCode);
       const coupon = await this.couponsService.findByCode(couponCode);
       if (!coupon) {
         throw new BadRequestException('Invalid coupon code');
@@ -308,9 +357,7 @@ export class DayRegistrationController {
       }
       finalAmount = subtotal - coupon.amountOff;
       if (finalAmount < 0) {
-        throw new BadRequestException(
-          'This coupon is invalid for this order.',
-        );
+        throw new BadRequestException('This coupon is invalid for this order.');
       }
     }
 
@@ -376,13 +423,15 @@ export class DayRegistrationController {
     // Build days with activities for email
     const daysWithActivities = days.map((day) => {
       const dayId = day._id?.toString();
-      const activityIndices = dayId ? saved.selectedActivitiesPerDay?.[dayId] : undefined;
-      
+      const activityIndices = dayId
+        ? saved.selectedActivitiesPerDay?.[dayId]
+        : undefined;
+
       const activities =
         activityIndices && activityIndices.length > 0 && day.events
-          ? activityIndices
+          ? (activityIndices
               .map((idx) => day.events?.[idx]?.title)
-              .filter(Boolean) as string[]
+              .filter(Boolean) as string[])
           : [];
 
       return {
@@ -405,6 +454,7 @@ export class DayRegistrationController {
       registrationId: saved.registrationId,
       finalAmount,
       currency: 'INR',
+      pricingPhase: pricing.phase,
       paymentScreenshotUrl: uploaded.url,
     };
   }

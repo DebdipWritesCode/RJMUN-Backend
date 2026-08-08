@@ -35,8 +35,11 @@ export class PaymentConfirmationService {
       return this.processDayRegistrationCaptured(paymentId, notes);
     }
 
-    const metadata = notes as Record<string, any> & { couponCode?: string };
-    const { couponCode, ...registrationFields } = metadata;
+    const metadata = notes as Record<string, any> & {
+      couponCode?: string;
+      registrationAmount?: number;
+    };
+    const { couponCode, registrationAmount, ...registrationFields } = metadata;
     const createDto: CreateRegistrationDto = {
       ...registrationFields,
       paymentId,
@@ -104,6 +107,7 @@ export class PaymentConfirmationService {
         registration.email,
         registration.registrationId,
         registration.fullName,
+        registrationAmount ?? 1200,
       );
 
       return registration;
@@ -132,11 +136,10 @@ export class PaymentConfirmationService {
 
     try {
       await session.withTransaction(async () => {
-        const existing =
-          await this.dayRegistrationService.findByPaymentId(
-            paymentId,
-            session,
-          );
+        const existing = await this.dayRegistrationService.findByPaymentId(
+          paymentId,
+          session,
+        );
 
         if (existing) {
           console.log(`Payment ${paymentId} already processed.`);
@@ -165,10 +168,7 @@ export class PaymentConfirmationService {
             session,
           );
           if (coupon && coupon.redemptionsLeft > 0) {
-            await this.couponsService.decrementRedemption(
-              couponCode,
-              session,
-            );
+            await this.couponsService.decrementRedemption(couponCode, session);
           }
         }
       });

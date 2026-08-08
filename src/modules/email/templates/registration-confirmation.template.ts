@@ -1,6 +1,7 @@
 export const registrationConfirmationTemplate = (
   fullName: string,
   regId: string,
+  registrationAmount: number,
 ) => `
 <!DOCTYPE html>
 <html>
@@ -151,7 +152,7 @@ export const registrationConfirmationTemplate = (
       <div class="highlight-box">
         <div class="label">Registration Status</div>
         <div style="font-size: 20px; color: #764ba2; font-weight: bold;">✓ CONFIRMED</div>
-        <div class="label" style="margin-top: 10px;">Registration Amount: ₹1200</div>
+        <div class="label" style="margin-top: 10px;">Registration Amount: ₹${registrationAmount}</div>
       </div>
 
       <div class="section">
@@ -185,7 +186,7 @@ export const registrationConfirmationTemplate = (
           A: Committee changes must be requested within 48 hours of receiving your allotment. Contact the organizing committee.</p>
           
           <p><strong>Q: Do I need to pay again?</strong><br/>
-          A: No, your registration amount of ₹1200 is a one-time payment.</p>
+          A: No, your registration amount of ₹${registrationAmount} is a one-time payment.</p>
         </div>
       </div>
 

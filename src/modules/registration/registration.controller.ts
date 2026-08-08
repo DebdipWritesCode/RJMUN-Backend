@@ -19,6 +19,10 @@ import { BulkUpdateAllotmentDto } from './dto/bulk-update-allotment.dto';
 import { EmailService } from '../email/email.service';
 import { SheetsService } from '../sheets/sheets.service';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import {
+  getRegistrationPricing,
+  isLegacyEarlyBirdCoupon,
+} from '../../common/registration-pricing';
 
 @Controller('registration')
 export class RegistrationController {
@@ -31,17 +35,22 @@ export class RegistrationController {
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
-  private readonly BASE_AMOUNT = 1200;
-
   @Post('calculate-amount')
   async calculateAmount(@Body() body: { couponCode?: string }) {
     const { couponCode } = body;
+    const pricing = getRegistrationPricing();
+    const baseAmount = pricing.munAmount;
 
-    let finalAmount = this.BASE_AMOUNT;
+    let finalAmount = baseAmount;
     let discountFromCoupon = 0;
     let couponDetails: { code: string; discountAmount: number } | null = null;
 
     if (couponCode) {
+      if (isLegacyEarlyBirdCoupon(couponCode)) {
+        throw new BadRequestException(
+          'Early-bird pricing is applied automatically; no code is required.',
+        );
+      }
       const coupon = await this.couponsService.findByCode(couponCode);
 
       if (!coupon) {
@@ -52,14 +61,14 @@ export class RegistrationController {
         throw new BadRequestException('Coupon has already been used');
       }
 
-      if (coupon.amountOff > this.BASE_AMOUNT) {
+      if (coupon.amountOff > baseAmount) {
         throw new BadRequestException(
           'Coupon discount exceeds the base amount',
         );
       }
 
       discountFromCoupon = coupon.amountOff;
-      finalAmount = this.BASE_AMOUNT - discountFromCoupon;
+      finalAmount = baseAmount - discountFromCoupon;
       couponDetails = {
         code: couponCode,
         discountAmount: discountFromCoupon,
@@ -67,7 +76,10 @@ export class RegistrationController {
     }
 
     return {
-      baseAmount: this.BASE_AMOUNT,
+      baseAmount,
+      regularAmount: 1200,
+      pricingPhase: pricing.phase,
+      earlyBirdEndsAt: pricing.earlyBirdEndsAt,
       discountFromCoupon,
       finalAmount,
       coupon: couponDetails,
@@ -80,10 +92,17 @@ export class RegistrationController {
     @Body() body: { data: CreateRegistrationDto; couponCode?: string },
   ) {
     const { data, couponCode } = body;
+    const pricing = getRegistrationPricing();
+    const baseAmount = pricing.munAmount;
 
-    let finalAmount = this.BASE_AMOUNT;
+    let finalAmount = baseAmount;
 
     if (couponCode) {
+      if (isLegacyEarlyBirdCoupon(couponCode)) {
+        throw new BadRequestException(
+          'Early-bird pricing is applied automatically; no code is required.',
+        );
+      }
       const coupon = await this.couponsService.findByCode(couponCode);
 
       if (!coupon) {
@@ -94,7 +113,7 @@ export class RegistrationController {
         throw new BadRequestException('Coupon has already been used');
       }
 
-      if (coupon.amountOff > this.BASE_AMOUNT) {
+      if (coupon.amountOff > baseAmount) {
         throw new BadRequestException(
           'Coupon discount exceeds the base amount',
         );
@@ -106,6 +125,7 @@ export class RegistrationController {
     const metadata = {
       ...data,
       couponCode: couponCode || undefined,
+      registrationAmount: finalAmount,
     };
 
     if (finalAmount <= 0) {
@@ -124,11 +144,12 @@ export class RegistrationController {
         }
       }
 
-      const saved = await this.registrationService.findByPaymentId(fakePaymentId);
+      const saved =
+        await this.registrationService.findByPaymentId(fakePaymentId);
       if (!saved) {
         throw new BadRequestException('Registration not found');
       }
-      
+
       const row = [
         saved.registrationId,
         saved.fullName,
@@ -155,6 +176,7 @@ export class RegistrationController {
         saved.email,
         saved.registrationId,
         saved.fullName,
+        finalAmount,
       );
 
       return {
@@ -192,9 +214,16 @@ export class RegistrationController {
       throw new BadRequestException('Invalid data format');
     }
 
-    let finalAmount = this.BASE_AMOUNT;
+    const pricing = getRegistrationPricing();
+    const baseAmount = pricing.munAmount;
+    let finalAmount = baseAmount;
 
     if (couponCode) {
+      if (isLegacyEarlyBirdCoupon(couponCode)) {
+        throw new BadRequestException(
+          'Early-bird pricing is applied automatically; no code is required.',
+        );
+      }
       const coupon = await this.couponsService.findByCode(couponCode);
 
       if (!coupon) {
@@ -205,7 +234,7 @@ export class RegistrationController {
         throw new BadRequestException('Coupon has already been used');
       }
 
-      if (coupon.amountOff > this.BASE_AMOUNT) {
+      if (coupon.amountOff > baseAmount) {
         throw new BadRequestException(
           'Coupon discount exceeds the base amount',
         );
@@ -237,8 +266,7 @@ export class RegistrationController {
       }
     }
 
-    const saved =
-      await this.registrationService.findByPaymentId(qrPaymentId);
+    const saved = await this.registrationService.findByPaymentId(qrPaymentId);
     if (!saved) {
       throw new BadRequestException('Registration not found');
     }
@@ -270,12 +298,14 @@ export class RegistrationController {
       saved.email,
       saved.registrationId,
       saved.fullName,
+      finalAmount,
     );
 
     return {
       message: 'Registration submitted. Payment verification pending.',
       registrationId: saved.registrationId,
       finalAmount,
+      pricingPhase: pricing.phase,
       currency: 'INR',
       paymentScreenshotUrl: uploaded.url,
     };
