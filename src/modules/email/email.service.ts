@@ -20,7 +20,9 @@ export class EmailService {
   private get from(): string {
     const from = process.env.RESEND_FROM_EMAIL;
     if (!from) {
-      throw new Error('RESEND_FROM_EMAIL is required (e.g. "RJMUN 3.0 <noreply@rjmun-backend.shop>")');
+      throw new Error(
+        'RESEND_FROM_EMAIL is required (e.g. "RJMUN 3.0 <noreply@rjmun-backend.shop>")',
+      );
     }
     return from;
   }
@@ -29,8 +31,13 @@ export class EmailService {
     to: string,
     regId: string,
     fullName: string,
+    registrationAmount: number,
   ) {
-    const html = registrationConfirmationTemplate(fullName, regId);
+    const html = registrationConfirmationTemplate(
+      fullName,
+      regId,
+      registrationAmount,
+    );
     const { data, error } = await this.resend.emails.send({
       from: this.from,
       to,
