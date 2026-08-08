@@ -314,14 +314,10 @@ export class DayRegistrationController {
   @Post('register-with-qr')
   @UseInterceptors(FileInterceptor('paymentScreenshot'))
   async registerWithQr(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: Express.Multer.File | undefined,
     @Body('data') dataString: string,
     @Body('couponCode') couponCode?: string,
   ) {
-    if (!file) {
-      throw new BadRequestException('Payment screenshot is required');
-    }
-
     let data: CreateDayRegistrationDto;
     try {
       data = JSON.parse(dataString);
@@ -361,11 +357,13 @@ export class DayRegistrationController {
       }
     }
 
-    const uploaded = await this.cloudinaryService.upload(
-      file.buffer,
-      'rjmun/payment-screenshots',
-      file.mimetype,
-    );
+    const uploaded = file
+      ? await this.cloudinaryService.upload(
+          file.buffer,
+          'rjmun/payment-screenshots',
+          file.mimetype,
+        )
+      : undefined;
 
     const qrPaymentId = `QR-${Date.now()}`;
 
@@ -376,7 +374,7 @@ export class DayRegistrationController {
       amountPaid: finalAmount,
       discountApplied: subtotal - finalAmount,
       couponCode: couponCode || undefined,
-      paymentScreenshotUrl: uploaded.url,
+      paymentScreenshotUrl: uploaded?.url,
     });
 
     if (couponCode) {
@@ -402,7 +400,7 @@ export class DayRegistrationController {
         paymentStatus: saved.paymentStatus,
         amountPaid: saved.amountPaid,
         createdAt: saved.createdAt,
-        paymentScreenshotUrl: uploaded.url,
+        paymentScreenshotUrl: uploaded?.url,
         selectedActivitiesPerDay: saved.selectedActivitiesPerDay,
       },
       days,
@@ -455,7 +453,7 @@ export class DayRegistrationController {
       finalAmount,
       currency: 'INR',
       pricingPhase: pricing.phase,
-      paymentScreenshotUrl: uploaded.url,
+      paymentScreenshotUrl: uploaded?.url,
     };
   }
 

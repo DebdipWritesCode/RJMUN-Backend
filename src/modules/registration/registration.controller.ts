@@ -199,14 +199,10 @@ export class RegistrationController {
   @Post('register-with-qr')
   @UseInterceptors(FileInterceptor('paymentScreenshot'))
   async registerWithQr(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: Express.Multer.File | undefined,
     @Body('data') dataString: string,
     @Body('couponCode') couponCode?: string,
   ) {
-    if (!file) {
-      throw new BadRequestException('Payment screenshot is required');
-    }
-
     let data: CreateRegistrationDto;
     try {
       data = JSON.parse(dataString);
@@ -243,11 +239,13 @@ export class RegistrationController {
       finalAmount -= coupon.amountOff;
     }
 
-    const uploaded = await this.cloudinaryService.upload(
-      file.buffer,
-      'rjmun/payment-screenshots',
-      file.mimetype,
-    );
+    const uploaded = file
+      ? await this.cloudinaryService.upload(
+          file.buffer,
+          'rjmun/payment-screenshots',
+          file.mimetype,
+        )
+      : undefined;
 
     const qrPaymentId = `QR-${Date.now()}`;
 
@@ -255,7 +253,7 @@ export class RegistrationController {
       ...data,
       paymentId: qrPaymentId,
       paymentStatus: 'pending',
-      paymentScreenshotUrl: uploaded.url,
+      paymentScreenshotUrl: uploaded?.url,
       couponCode: couponCode || undefined,
     });
 
@@ -286,7 +284,7 @@ export class RegistrationController {
       saved.portfolioPreference2ForCommitteePreference2 || '',
       saved.paymentStatus,
       new Date().toLocaleString(),
-      uploaded.url,
+      uploaded?.url || '',
     ];
     await this.sheetsService.appendRegistrationData(
       row,
@@ -307,7 +305,7 @@ export class RegistrationController {
       finalAmount,
       pricingPhase: pricing.phase,
       currency: 'INR',
-      paymentScreenshotUrl: uploaded.url,
+      paymentScreenshotUrl: uploaded?.url,
     };
   }
 
