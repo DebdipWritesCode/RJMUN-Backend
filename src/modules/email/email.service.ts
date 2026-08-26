@@ -1,4 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import * as nodemailer from 'nodemailer';
+import type { Transporter } from 'nodemailer';
 import { Resend } from 'resend';
 import { registrationConfirmationTemplate } from './templates/registration-confirmation.template';
 import { dayRegistrationConfirmationTemplate } from './templates/day-registration-confirmation.template';
@@ -7,17 +9,46 @@ import { allotmentConfirmationTemplate } from './templates/allotment-confirmatio
 
 @Injectable()
 export class EmailService {
-  private resend: Resend;
+  private readonly logger = new Logger(EmailService.name);
+  private readonly resend?: Resend;
+  private readonly gmailTransporter?: Transporter;
+  private readonly gmailUser?: string;
 
   constructor() {
     const apiKey = process.env.RESEND_API_KEY;
-    if (!apiKey) {
-      throw new Error('RESEND_API_KEY is required for sending emails');
+    if (apiKey) {
+      this.resend = new Resend(apiKey);
     }
-    this.resend = new Resend(apiKey);
+
+    const gmailUser = process.env.GMAIL_SMTP_USER || process.env.EMAIL_USER;
+    const gmailAppPassword =
+      process.env.GMAIL_SMTP_APP_PASSWORD || process.env.EMAIL_PASS;
+
+    if (gmailUser && gmailAppPassword) {
+      this.gmailUser = gmailUser;
+      this.gmailTransporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        auth: {
+          user: gmailUser,
+          pass: gmailAppPassword,
+        },
+      });
+    } else if (gmailUser || gmailAppPassword) {
+      this.logger.warn(
+        'Gmail SMTP fallback is disabled because its credentials are incomplete.',
+      );
+    }
+
+    if (!this.resend && !this.gmailTransporter) {
+      throw new Error(
+        'Email delivery is not configured. Set RESEND_API_KEY or both GMAIL_SMTP_USER and GMAIL_SMTP_APP_PASSWORD.',
+      );
+    }
   }
 
-  private get from(): string {
+  private get resendFrom(): string {
     const from = process.env.RESEND_FROM_EMAIL;
     if (!from) {
       throw new Error(
@@ -25,6 +56,79 @@ export class EmailService {
       );
     }
     return from;
+  }
+
+  private get gmailFrom(): string {
+    if (!this.gmailUser) {
+      throw new Error('Gmail SMTP sender is not configured.');
+    }
+
+    return process.env.GMAIL_FROM_EMAIL || `RJMUN 3.0 <${this.gmailUser}>`;
+  }
+
+  private toError(error: unknown): Error {
+    if (error instanceof Error) {
+      return error;
+    }
+
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'message' in error &&
+      typeof error.message === 'string'
+    ) {
+      return new Error(error.message);
+    }
+
+    return new Error('Email delivery failed.');
+  }
+
+  private async sendEmail(
+    to: string,
+    subject: string,
+    html: string,
+  ): Promise<{ provider: 'resend' | 'gmail'; id?: string }> {
+    let resendError: unknown;
+
+    if (this.resend) {
+      try {
+        const { data, error } = await this.resend.emails.send({
+          from: this.resendFrom,
+          to,
+          subject,
+          html,
+        });
+
+        if (error) {
+          throw this.toError(error);
+        }
+
+        return { provider: 'resend', id: data?.id };
+      } catch (error: unknown) {
+        resendError = error;
+        if (this.gmailTransporter) {
+          this.logger.warn(
+            'Resend delivery failed; attempting Gmail SMTP fallback.',
+          );
+        }
+      }
+    }
+
+    if (this.gmailTransporter) {
+      await this.gmailTransporter.sendMail({
+        from: this.gmailFrom,
+        to,
+        subject,
+        html,
+      });
+      return { provider: 'gmail' };
+    }
+
+    if (resendError) {
+      throw this.toError(resendError);
+    }
+
+    throw new Error('No email delivery provider is available.');
   }
 
   async sendRegistrationConfirmation(
@@ -38,14 +142,7 @@ export class EmailService {
       regId,
       registrationAmount,
     );
-    const { data, error } = await this.resend.emails.send({
-      from: this.from,
-      to,
-      subject: 'RJMUN Registration Confirmation',
-      html,
-    });
-    if (error) throw error;
-    return data;
+    return this.sendEmail(to, 'RJMUN Registration Confirmation', html);
   }
 
   async sendDayRegistrationConfirmation(
@@ -65,14 +162,7 @@ export class EmailService {
       selectedDaysSummary,
       daysWithActivities,
     );
-    const { data, error } = await this.resend.emails.send({
-      from: this.from,
-      to,
-      subject: 'Fest Day Registration Confirmation',
-      html,
-    });
-    if (error) throw error;
-    return data;
+    return this.sendEmail(to, 'Fest Day Registration Confirmation', html);
   }
 
   async sendCAConfirmationEmail(
@@ -81,14 +171,7 @@ export class EmailService {
     institution: string,
   ) {
     const html = caConfirmationTemplate(fullName, institution);
-    const { data, error } = await this.resend.emails.send({
-      from: this.from,
-      to,
-      subject: 'RJMUN CA Registration Confirmation',
-      html,
-    });
-    if (error) throw error;
-    return data;
+    return this.sendEmail(to, 'RJMUN CA Registration Confirmation', html);
   }
 
   async sendAllotmentEmail(
@@ -98,13 +181,6 @@ export class EmailService {
     portfolio: string,
   ) {
     const html = allotmentConfirmationTemplate(fullName, committee, portfolio);
-    const { data, error } = await this.resend.emails.send({
-      from: this.from,
-      to,
-      subject: 'Your RJMUN Allotment Details',
-      html,
-    });
-    if (error) throw error;
-    return data;
+    return this.sendEmail(to, 'Your RJMUN Allotment Details', html);
   }
 }
