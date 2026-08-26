@@ -20,11 +20,15 @@ describe('EmailService', () => {
   const originalEnv = process.env;
   const createTransport = jest.mocked(nodemailer.createTransport);
   let loggerWarn: jest.SpiedFunction<Logger['warn']>;
+  let loggerError: jest.SpiedFunction<Logger['error']>;
 
   beforeEach(() => {
     jest.clearAllMocks();
     loggerWarn = jest
       .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    loggerError = jest
+      .spyOn(Logger.prototype, 'error')
       .mockImplementation(() => undefined);
     process.env = {
       ...originalEnv,
@@ -134,6 +138,29 @@ describe('EmailService', () => {
 
     expect(createTransport).not.toHaveBeenCalled();
     expect(resendSend).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not reject a completed registration when email delivery fails', async () => {
+    delete process.env.GMAIL_SMTP_USER;
+    delete process.env.GMAIL_SMTP_APP_PASSWORD;
+    resendSend.mockResolvedValue({
+      data: null,
+      error: { message: 'Monthly sending limit reached' },
+    });
+
+    await expect(
+      new EmailService().trySendRegistrationConfirmation(
+        'delegate@example.com',
+        'RJMUN-003',
+        'Saved Delegate',
+        1200,
+      ),
+    ).resolves.toBe(false);
+
+    expect(loggerError).toHaveBeenCalledWith(
+      'Registration confirmation email could not be delivered.',
+      expect.any(String),
+    );
   });
 
   it('rejects startup when neither provider is configured', () => {

@@ -287,7 +287,7 @@ export class DayRegistrationController {
         };
       });
 
-      await this.emailService.sendDayRegistrationConfirmation(
+      await this.emailService.trySendDayRegistrationConfirmation(
         saved.email,
         saved.registrationId,
         saved.firstName,
@@ -439,7 +439,7 @@ export class DayRegistrationController {
       };
     });
 
-    await this.emailService.sendDayRegistrationConfirmation(
+    await this.emailService.trySendDayRegistrationConfirmation(
       saved.email,
       saved.registrationId,
       saved.firstName,

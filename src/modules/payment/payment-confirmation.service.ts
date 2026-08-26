@@ -103,7 +103,7 @@ export class PaymentConfirmationService {
         'Sheet1!A1',
       );
 
-      await this.emailService.sendRegistrationConfirmation(
+      await this.emailService.trySendRegistrationConfirmation(
         registration.email,
         registration.registrationId,
         registration.fullName,
@@ -208,7 +208,7 @@ export class PaymentConfirmationService {
       const selectedDaysSummary = days
         .map((d) => `${d.name} (${d.date})`)
         .join(', ');
-      await this.emailService.sendDayRegistrationConfirmation(
+      await this.emailService.trySendDayRegistrationConfirmation(
         reg.email,
         reg.registrationId,
         reg.firstName,
