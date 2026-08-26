@@ -31,7 +31,7 @@ This is the **backend** for the [RJMUN](https://rjmun.in) (Ramakrishna Junior Mo
 * [MongoDB](https://www.mongodb.com/) — Database
 * [Razorpay](https://razorpay.com/) — Payment integration
 * [Google Sheets API](https://developers.google.com/sheets/api) — Used for registration data
-* [Resend](https://resend.com/) — Email confirmations
+* [Resend](https://resend.com/) with Gmail SMTP fallback — Email confirmations
 * [TypeScript](https://www.typescriptlang.org/)
 
 ---
@@ -70,6 +70,11 @@ NODE_ENV=development
 RESEND_API_KEY=       # From https://resend.com/api-keys
 RESEND_FROM_EMAIL=    # e.g. "RJMUN 3.0 <noreply@rjmun-backend.shop>" (must use a verified domain in Resend)
 
+# Gmail SMTP fallback (use a Google app password, not the account password)
+GMAIL_SMTP_USER=      # e.g. rjmun@example.com
+GMAIL_SMTP_APP_PASSWORD=
+GMAIL_FROM_EMAIL=     # optional; defaults to "RJMUN 3.0 <GMAIL_SMTP_USER>"
+
 # Google Sheets integration
 REGISTRATION_SHEET_ID=
 
@@ -88,6 +93,11 @@ GOOGLE_UNIVERSAL_DOMAIN=
 ```
 
 > 🛡️ Make sure `.env` is listed in your `.gitignore` to avoid committing sensitive information.
+
+Resend is attempted first. If it rejects or fails to deliver a message, the
+same message is sent through Gmail SMTP. The Gmail fallback requires both
+`GMAIL_SMTP_USER` and `GMAIL_SMTP_APP_PASSWORD`; `EMAIL_USER` and `EMAIL_PASS`
+remain supported as legacy aliases.
 
 ---
 
