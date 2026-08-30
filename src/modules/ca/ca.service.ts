@@ -35,7 +35,7 @@ export class CaService {
       'Sheet2!A1',
     );
 
-    await this.emailService.sendCAConfirmationEmail(
+    await this.emailService.trySendCAConfirmationEmail(
       saved.email,
       saved.fullName,
       saved.institution,

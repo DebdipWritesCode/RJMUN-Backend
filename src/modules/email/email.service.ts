@@ -131,6 +131,23 @@ export class EmailService {
     throw new Error('No email delivery provider is available.');
   }
 
+  private async deliverBestEffort(
+    emailType: string,
+    delivery: () => Promise<unknown>,
+  ): Promise<boolean> {
+    try {
+      await delivery();
+      return true;
+    } catch (error: unknown) {
+      const deliveryError = this.toError(error);
+      this.logger.error(
+        `${emailType} email could not be delivered.`,
+        deliveryError.stack,
+      );
+      return false;
+    }
+  }
+
   async sendRegistrationConfirmation(
     to: string,
     regId: string,
@@ -143,6 +160,22 @@ export class EmailService {
       registrationAmount,
     );
     return this.sendEmail(to, 'RJMUN Registration Confirmation', html);
+  }
+
+  async trySendRegistrationConfirmation(
+    to: string,
+    regId: string,
+    fullName: string,
+    registrationAmount: number,
+  ): Promise<boolean> {
+    return this.deliverBestEffort('Registration confirmation', () =>
+      this.sendRegistrationConfirmation(
+        to,
+        regId,
+        fullName,
+        registrationAmount,
+      ),
+    );
   }
 
   async sendDayRegistrationConfirmation(
@@ -165,6 +198,28 @@ export class EmailService {
     return this.sendEmail(to, 'Fest Day Registration Confirmation', html);
   }
 
+  async trySendDayRegistrationConfirmation(
+    to: string,
+    registrationId: string,
+    firstName: string,
+    selectedDaysSummary: string,
+    daysWithActivities?: Array<{
+      dayName: string;
+      dayDate: string;
+      activities: string[];
+    }>,
+  ): Promise<boolean> {
+    return this.deliverBestEffort('Fest day registration confirmation', () =>
+      this.sendDayRegistrationConfirmation(
+        to,
+        registrationId,
+        firstName,
+        selectedDaysSummary,
+        daysWithActivities,
+      ),
+    );
+  }
+
   async sendCAConfirmationEmail(
     to: string,
     fullName: string,
@@ -172,6 +227,16 @@ export class EmailService {
   ) {
     const html = caConfirmationTemplate(fullName, institution);
     return this.sendEmail(to, 'RJMUN CA Registration Confirmation', html);
+  }
+
+  async trySendCAConfirmationEmail(
+    to: string,
+    fullName: string,
+    institution: string,
+  ): Promise<boolean> {
+    return this.deliverBestEffort('CA registration confirmation', () =>
+      this.sendCAConfirmationEmail(to, fullName, institution),
+    );
   }
 
   async sendAllotmentEmail(

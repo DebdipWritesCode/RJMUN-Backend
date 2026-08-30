@@ -172,7 +172,7 @@ export class RegistrationController {
         'Sheet1!A1',
       );
 
-      await this.emailService.sendRegistrationConfirmation(
+      await this.emailService.trySendRegistrationConfirmation(
         saved.email,
         saved.registrationId,
         saved.fullName,
@@ -292,7 +292,7 @@ export class RegistrationController {
       'Sheet1!A1',
     );
 
-    await this.emailService.sendRegistrationConfirmation(
+    await this.emailService.trySendRegistrationConfirmation(
       saved.email,
       saved.registrationId,
       saved.fullName,
