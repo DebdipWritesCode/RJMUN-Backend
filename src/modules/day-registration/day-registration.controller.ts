@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  GoneException,
   Param,
   Post,
   UploadedFile,
@@ -34,6 +35,10 @@ export class DayRegistrationController {
     private readonly emailService: EmailService,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
+
+  private assertFestRegistrationsOpen(): void {
+    throw new GoneException('Fest registrations are closed.');
+  }
 
   private assertCouponIsNotLegacyEarlyBird(couponCode?: string): void {
     if (isLegacyEarlyBirdCoupon(couponCode)) {
@@ -183,6 +188,8 @@ export class DayRegistrationController {
   async initiate(
     @Body() body: { data: CreateDayRegistrationDto; couponCode?: string },
   ) {
+    this.assertFestRegistrationsOpen();
+
     const { data, couponCode } = body;
 
     this.validateSelectedActivities(data.selectedActivitiesPerDay);
@@ -318,6 +325,8 @@ export class DayRegistrationController {
     @Body('data') dataString: string,
     @Body('couponCode') couponCode?: string,
   ) {
+    this.assertFestRegistrationsOpen();
+
     let data: CreateDayRegistrationDto;
     try {
       data = JSON.parse(dataString);
