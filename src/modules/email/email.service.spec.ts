@@ -68,6 +68,20 @@ describe('EmailService', () => {
     expect(smtpSendMail).not.toHaveBeenCalled();
   });
 
+  it('reuses pooled Gmail SMTP connections for bulk delivery', () => {
+    new EmailService();
+
+    expect(createTransport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pool: true,
+        maxConnections: 1,
+        maxMessages: 100,
+        rateDelta: 1000,
+        rateLimit: 5,
+      }),
+    );
+  });
+
   it('falls back to Gmail SMTP when Resend returns an error', async () => {
     resendSend.mockResolvedValue({
       data: null,

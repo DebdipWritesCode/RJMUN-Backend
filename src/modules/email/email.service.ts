@@ -27,9 +27,14 @@ export class EmailService {
     if (gmailUser && gmailAppPassword) {
       this.gmailUser = gmailUser;
       this.gmailTransporter = nodemailer.createTransport({
+        pool: true,
         host: 'smtp.gmail.com',
         port: 465,
         secure: true,
+        maxConnections: 1,
+        maxMessages: 100,
+        rateDelta: 1000,
+        rateLimit: 5,
         auth: {
           user: gmailUser,
           pass: gmailAppPassword,
