@@ -94,8 +94,10 @@ export class RegistrationService {
 
   async bulkUpdateAllotments(
     allotments: UpdateAllotmentDto[],
-  ): Promise<{ updated: number; failed: string[] }> {
+  ): Promise<{ updated: number; unchanged: number; failed: string[] }> {
     const failed: string[] = [];
+    let updatedCount = 0;
+    let unchangedCount = 0;
 
     const operations = allotments.map(async (dto) => {
       if (!dto.allottedCommittee?.trim() && !dto.allottedPortfolio?.trim()) {
@@ -103,7 +105,14 @@ export class RegistrationService {
       }
 
       const updated = await this.registrationModel.findOneAndUpdate(
-        { registrationId: dto.registrationId },
+        {
+          registrationId: dto.registrationId,
+          $or: [
+            { allotmentStatus: { $ne: 'allotted' } },
+            { allottedCommittee: { $ne: dto.allottedCommittee } },
+            { allottedPortfolio: { $ne: dto.allottedPortfolio } },
+          ],
+        },
         {
           allotmentStatus: 'allotted',
           allottedCommittee: dto.allottedCommittee,
@@ -113,19 +122,26 @@ export class RegistrationService {
         { new: true },
       );
 
-      if (!updated) {
+      if (updated) {
+        updatedCount += 1;
+        return;
+      }
+
+      const exists = await this.registrationModel.exists({
+        registrationId: dto.registrationId,
+      });
+      if (!exists) {
         failed.push(dto.registrationId);
+      } else {
+        unchangedCount += 1;
       }
     });
 
     await Promise.all(operations);
 
-    const attempted = allotments.filter(
-      (dto) => dto.allottedCommittee?.trim() || dto.allottedPortfolio?.trim(),
-    ).length;
-
     return {
-      updated: attempted - failed.length,
+      updated: updatedCount,
+      unchanged: unchangedCount,
       failed,
     };
   }
@@ -140,7 +156,6 @@ export class RegistrationService {
       sent: 0,
       failed: [] as string[],
     };
-    const sentIds: typeof allotted[0]['_id'][] = [];
 
     for (const reg of allotted) {
       try {
@@ -150,19 +165,15 @@ export class RegistrationService {
           reg.allottedCommittee || 'N/A',
           reg.allottedPortfolio || 'N/A',
         );
+        await this.registrationModel.updateOne(
+          { _id: reg._id },
+          { $set: { isAllotmentUpdated: false } },
+        );
         results.sent++;
-        sentIds.push(reg._id);
       } catch (err) {
         results.failed.push(reg.registrationId);
         console.error(`Failed to send to ${reg.email}:`, err);
       }
-    }
-
-    if (sentIds.length > 0) {
-      await this.registrationModel.updateMany(
-        { _id: { $in: sentIds } },
-        { $set: { isAllotmentUpdated: false } },
-      );
     }
 
     return results;
