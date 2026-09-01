@@ -45,6 +45,14 @@ const committees: CanonicalItem[] = [
     },
   },
   {
+    aliases: ['UNHRC'],
+    values: {
+      name: 'UNHRC',
+      agenda:
+        'Preventing the recruitment and use of child soldiers in armed conflicts and ensuring their rehabilitation and reintegration.',
+    },
+  },
+  {
     aliases: ['IP'],
     values: {
       name: 'IP',
